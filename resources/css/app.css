@@ -1,0 +1,135 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+@source '../**/*.jsx';
+
+/* Light Mode Only Policy */
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --font-sans: 'Noto Sans Thai', 'Noto Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-doc: 'Sarabun', 'TH Sarabun New', serif;
+}
+
+html {
+    font-family: 'Noto Sans Thai', sans-serif;
+}
+
+body {
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-weight: 400; /* Regular ธรรมดา */
+    font-size: 15px;  /* ขยายขนาดฟอนต์ให้อ่านง่าย ชัดเจน */
+}
+
+:root {
+    /* Semantic Green Theme Tokens */
+    --primary: #047857;          /* Forest Emerald 700 */
+    --primary-foreground: #ffffff;
+    --primary-container: #059669;/* Emerald 600 */
+    --on-primary-container: #ecfdf5;
+    --primary-hover: #065f46;    /* Emerald 800 */
+
+    --background: #f8fafc;
+    --foreground: #1b1c22;
+
+    --card: #ffffff;
+    --card-foreground: #1b1c22;
+
+    --muted: #f1f5f9;
+    --muted-foreground: #475569;
+
+    --border: #e2e8f0;
+    --input: #cbd5e1;
+
+    --destructive: #ba1a1a;
+    --destructive-foreground: #ffffff;
+    --error-container: #fee2e2;
+
+    /* Soft Warm Yellow / Notice Tokens */
+    --color-amber-400: #fbe3a0;
+    --color-amber-500: #f2cf73;
+
+    /* Layered Green Shadows (School Green Tint) */
+    --shadow-card:
+        0 1px 3px rgb(4 120 87 / 0.04),
+        0 6px 18px -4px rgb(5 150 105 / 0.08);
+    --shadow-card-hover:
+        0 3px 6px rgb(4 120 87 / 0.06),
+        0 14px 28px -6px rgb(5 150 105 / 0.16);
+}
+
+/* Page Title with Green Bar */
+.page-title {
+    position: relative;
+    padding-left: 0.875rem;
+}
+.page-title::before {
+    content: '';
+    position: absolute;
+    top: 0.15em;
+    bottom: 0.15em;
+    left: 0;
+    width: 4px;
+    border-radius: 9999px;
+    background: var(--primary);
+}
+
+/* Layered Card Shadows & Hover Elevation */
+:is(.rounded-xl, .rounded-2xl, .rounded-3xl).border.bg-card,
+[data-slot='card'] {
+    box-shadow: var(--shadow-card);
+}
+
+a:is(.rounded-xl, .rounded-2xl).border.bg-card:hover,
+button:is(.rounded-xl, .rounded-2xl).border.bg-card:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    a:is(.rounded-xl, .rounded-2xl).border.bg-card:hover,
+    button:is(.rounded-xl, .rounded-2xl).border.bg-card:hover {
+        transform: none;
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Print Optimization (Section 7) */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 12mm;
+    }
+    body {
+        background: white !important;
+        color: black !important;
+    }
+    :is(.rounded-xl, .rounded-2xl, .rounded-3xl).border.bg-card,
+    [data-slot='card'] {
+        box-shadow: none !important;
+    }
+    .no-print {
+        display: none !important;
+    }
+    .print-only {
+        display: block !important;
+    }
+}

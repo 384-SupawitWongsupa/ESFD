@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ER Diagram - ระบบทะเบียนพาณิชย์และสุขาภิบาล อบต.ดอยงาม</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Kanit', sans-serif;
+        }
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand img {
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+        }
+        .brand h1 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+        .brand p {
+            font-size: 12px;
+            color: #047857;
+            font-weight: 500;
+        }
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+        .btn-primary {
+            background: #047857;
+            color: white;
+            border-color: #047857;
+        }
+        .btn-primary:hover {
+            background: #065f46;
+        }
+        #diagram-container {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+            background: #f8fafc;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+        #diagram-target {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #diagram-target svg {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-size: 11px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            z-index: 5;
+            pointer-events: none;
+        }
+        .legend-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #0f172a;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            color: #475569;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <img src="/images/logo-doingam.png" alt="อบต.ดอยงาม">
+            <div>
+                <h1>Entity-Relationship Diagram (ER Diagram)</h1>
+                <p>ระบบทะเบียนพาณิชย์และสุขาภิบาล องค์การบริหารส่วนตำบลดอยงาม อำเภอพาน จังหวัดเชียงราย</p>
+            </div>
+        </div>
+        <div class="controls">
+            <button class="btn" onclick="panZoom.zoomIn()">ซูมเข้า (+)</button>
+            <button class="btn" onclick="panZoom.zoomOut()">ซูมออก (-)</button>
+            <button class="btn" onclick="panZoom.resetZoom(); panZoom.center();">รีเซ็ตมุมมอง</button>
+            <a href="https://dbdiagram.io" target="_blank" class="btn btn-primary">เปิดใน dbdiagram.io</a>
+        </div>
+    </header>
+
+    <div id="diagram-container">
+        <div id="diagram-target">
+            <pre class="mermaid">
+erDiagram
+    OWNERS ||--o{ BUSINESSES : "holds / owns (1:N)"
+    BUSINESS_CATEGORIES ||--o{ BUSINESSES : "categorizes (1:N)"
+    BUSINESSES ||--o{ LICENSES : "issues / renews (1:N)"
+    BUSINESSES ||--o{ INSPECTION_RECORDS : "evaluated_in (1:N)"
+    INSPECTION_ROUNDS ||--o{ INSPECTION_RECORDS : "groups (1:N)"
+
+    USERS {
+        int id PK "รหัสประจำตัวผู้ใช้"
+        string username UK "ชื่อผู้ใช้งาน"
+        string name "ชื่อ-นามสกุลจริง"
+        string email UK "อีเมลเจ้าหน้าที่"
+        string position "ตำแหน่งงาน"
+        string role "สิทธิ์ (admin/staff)"
+        boolean is_approved "สถานะอนุมัติ"
+        string password "รหัสผ่านเข้ารหัส"
+    }
+
+    OWNERS {
+        int owner_id PK "รหัสผู้ประกอบการ"
+        string citizen_id "เลขบัตรประชาชน 13 หลัก"
+        string juristic_id "เลขนิติบุคคล"
+        string owner_name "ชื่อผู้ประกอบการ / เจ้าของ"
+        string phone "เบอร์โทรศัพท์ติดต่อ"
+        string office_address "ที่อยู่ตามทะเบียนบ้าน"
+        string moo "หมู่ที่"
+        string subdistrict "ตำบลดอยงาม"
+        string district "อำเภอพาน"
+        string province "จังหวัดเชียงราย"
+    }
+
+    BUSINESS_CATEGORIES {
+        int category_id PK "รหัสหมวดหมู่"
+        string category_name UK "ชื่อประเภทกิจการตามเทศบัญญัติ"
+    }
+
+    BUSINESSES {
+        int business_id PK "รหัสสถานประกอบการ"
+        int owner_id FK "รหัสเจ้าของ"
+        int category_id FK "รหัสหมวดหมู่"
+        string shop_name "ชื่อสถานประกอบการ / ร้านค้า"
+        text operation_type "ลักษณะการดำเนินกิจการ"
+        string shop_address "ที่ตั้งร้าน"
+        string shop_moo "หมู่ที่ตั้งร้าน"
+        string business_area "พื้นที่ประกอบการ (ตร.ม.)"
+        string machine_power "กำลังเครื่องจักร"
+        string worker_count "จำนวนคนงาน"
+        string inspection_status "สถานะการตรวจ"
+        string workflow_status "ขั้นตอนงาน (สธ.2 / ตรวจ / อภ.2)"
+        date request_date "วันที่ยื่นแบบคำขอ สธ.๒"
+        string request_no "เลขที่คำขอ (REQ-xxx)"
+    }
+
+    LICENSES {
+        int license_id PK "รหัสใบอนุญาต"
+        int business_id FK "รหัสสถานประกอบการ"
+        decimal fee "ค่าธรรมเนียม (บาท)"
+        string receipt_book "เล่มที่ใบเสร็จรับเงิน"
+        string receipt_no "เลขที่ใบเสร็จรับเงิน"
+        date receipt_date "วันที่ออกใบเสร็จ"
+        date expire_date "วันสิ้นอายุ (1 ปี)"
+        string status "สถานะ (active/expired)"
+        boolean is_printed "สถานะพิมพ์ใบ อภ.๒"
+        timestamp printed_at "วันเวลาที่พิมพ์"
+    }
+
+    INSPECTION_ROUNDS {
+        int round_id PK "รหัสรอบตรวจ"
+        string round_name UK "ชื่อรอบการออกตรวจ"
+        date inspection_date "วันที่ลงพื้นที่ตรวจ"
+    }
+
+    INSPECTION_RECORDS {
+        int record_id PK "รหัสบันทึกผลตรวจ"
+        int round_id FK "รหัสรอบการออกตรวจ"
+        int business_id FK "รหัสสถานประกอบการ"
+        text condition_4_3 "เงื่อนไขข้อ 4.3"
+        text condition_4_4 "เงื่อนไขข้อ 4.4"
+        text file_url "ลิงก์ภาพแนบ Google Drive"
+        text notes "หมายเหตุและผู้ตรวจ"
+    }
+            </pre>
+        </div>
+
+        <div class="legend">
+            <div class="legend-title">สัญลักษณ์และความสัมพันธ์ (Notations)</div>
+            <div class="legend-item"><span class="dot" style="background:#047857;"></span> PK: Primary Key (รหัสหลัก)</div>
+            <div class="legend-item"><span class="dot" style="background:#3b82f6;"></span> FK: Foreign Key (รหัสเชื่อมโยง)</div>
+            <div class="legend-item"><span class="dot" style="background:#f59e0b;"></span> UK: Unique Key (ห้ามซ้ำ)</div>
+            <div class="legend-item"><span class="dot" style="background:#64748b;"></span> ||--o{ : ความสัมพันธ์แบบ 1 ต่อ กลุ่ม (One-to-Many)</div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'neutral',
+            er: {
+                useMaxWidth: false,
+                diagramPadding: 40,
+                entityPadding: 15,
+                stroke: '#047857',
+                fill: '#ffffff',
+                fontSize: 13
+            }
+        });
+
+        let panZoom;
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const svg = document.querySelector('#diagram-target svg');
+                if (svg) {
+                    panZoom = svgPanZoom(svg, {
+                        zoomEnabled: true,
+                        controlIconsEnabled: false,
+                        fit: true,
+                        center: true,
+                        minZoom: 0.2,
+                        maxZoom: 10
+                    });
+                }
+            }, 800);
+        });
+    </script>
+</body>
+</html>
+

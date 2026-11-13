@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title inertia>{{ config('app.name', 'ระบบออกใบอนุญาตอิเล็กทรอนิกส์สำหรับองค์การบริหารส่วนตำบลดอยงาม จังหวัดเชียงราย') }}</title>
+
+    <!-- Google Fonts: Noto Sans Thai, Sarabun -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    @viteReactRefresh
+    @vite(['resources/css/app.css', 'resources/js/app.jsx'])
+    @inertiaHead
+</head>
+<body class="font-sans antialiased bg-[#f8fafc] text-[#1b1c22] selection:bg-emerald-700 selection:text-white min-h-screen">
+    @inertia
+</body>
+</html>
