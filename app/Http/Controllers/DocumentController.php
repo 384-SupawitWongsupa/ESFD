@@ -82,10 +82,10 @@ class DocumentController extends Controller
         $overrides = [];
         $allowed = [
             'operation', 'date_day', 'date_month', 'date_year',
-            'applicant_name', 'nationality',
+            'applicant_name', 'age', 'nationality',
             'address_no', 'address_moo', 'address_soi', 'address_road',
             'address_subdistrict', 'address_district', 'address_province',
-            'phone', 'is_juristic',
+            'phone', 'is_juristic', 'request_no',
         ];
         foreach ($allowed as $key) {
             if ($request->has($key)) {

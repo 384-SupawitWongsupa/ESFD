@@ -1,215 +1,199 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Card } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/Button';
 import {
     Printer, FileDown, ArrowLeft, FileText, Award,
-    Pencil, Check, X, AlertCircle,
+    Pencil, RefreshCw, X, Check, CheckCircle2
 } from 'lucide-react';
 
-/* ─── helpers ─────────────────────────────────────────────── */
-function toThaiDigits(str) {
-    if (!str && str !== 0) return '';
-    const d = ['๐','๑','๒','๓','๔','๕','๖','๗','๘','๙'];
-    return String(str).replace(/[0-9]/g, (c) => d[c]);
-}
-
-/** Inline editable field — shows underlined text, clicking it turns into an input */
-function EditableField({ value, onChange, className = '', wide = false, multiline = false, align = 'left' }) {
-    const [editing, setEditing] = useState(false);
-    const [draft, setDraft]     = useState(value);
-
-    const commit = () => { onChange(draft); setEditing(false); };
-    const cancel = () => { setDraft(value); setEditing(false); };
-
-    if (editing) {
-        return (
-            <span className={`inline-flex items-center gap-0.5 print:hidden ${className}`}>
-                {multiline ? (
-                    <textarea
-                        autoFocus
-                        rows={2}
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(); } if (e.key === 'Escape') cancel(); }}
-                        className={`border border-emerald-500 rounded px-1.5 py-0.5 text-sm outline-none focus:ring-1 focus:ring-emerald-400 bg-emerald-50 ${wide ? 'w-64' : 'w-40'}`}
-                    />
-                ) : (
-                    <input
-                        autoFocus
-                        type="text"
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') cancel(); }}
-                        className={`border border-emerald-500 rounded px-1.5 py-0.5 text-sm outline-none focus:ring-1 focus:ring-emerald-400 bg-emerald-50 ${wide ? 'w-56' : 'w-32'}`}
-                    />
-                )}
-                <button onClick={commit} title="บันทึก" className="text-emerald-600 hover:text-emerald-800"><Check className="w-3.5 h-3.5" /></button>
-                <button onClick={cancel} title="ยกเลิก" className="text-slate-400 hover:text-rose-500"><X className="w-3.5 h-3.5" /></button>
-            </span>
-        );
-    }
-
-    return (
-        <span
-            onClick={() => { setDraft(value); setEditing(true); }}
-            title="คลิกเพื่อแก้ไข"
-            className={`group inline-flex items-center gap-0.5 cursor-pointer border-b border-dotted border-slate-700
-                        hover:border-emerald-500 hover:text-emerald-800 transition-colors px-1 print:border-0 print:cursor-default ${className}`}
-        >
-            <span className={`font-semibold ${align === 'right' ? 'text-right' : ''}`}>{value || '……………'}</span>
-            <Pencil className="w-2.5 h-2.5 text-slate-300 group-hover:text-emerald-500 print:hidden shrink-0" />
-        </span>
-    );
-}
-
-/** Checkbox — toggle on click */
-function EditableCheck({ checked, onChange }) {
-    return (
-        <span
-            onClick={onChange}
-            title="คลิกเพื่อเปลี่ยน"
-            className="cursor-pointer font-mono text-base select-none print:cursor-default"
-        >
-            {checked ? '[ / ]' : '[   ]'}
-        </span>
-    );
-}
-
-/* ─── main component ─────────────────────────────────────── */
 export default function DocumentPreview({
-    business, owner, license, inspection,
-    templateData = {}, thaiIssueDate, thaiExpireDate,
+    business,
+    owner,
+    license,
+    inspection,
+    templateData = {},
+    thaiIssueDate,
+    thaiExpireDate,
 }) {
+    // แท็บเอกสารเริ่มต้น: แบบคำขอทางการ (app_template.pdf)
     const [activeDoc, setActiveDoc] = useState('app_template');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isPrinting, setIsPrinting] = useState(false);
+    const iframeRef = useRef(null);
 
-    /* editable state for the app_template form */
-    const isJuristicDefault = templateData.is_juristic || Boolean(owner?.juristic_id);
-    const [form, setForm] = useState({
-        operation:         templateData.business_operation || business.operation_type || business.category?.category_name || '',
-        dateDay:           templateData.date_day           || '',
-        dateMonth:         templateData.date_month         || '',
-        dateYear:          templateData.date_year          || '',
-        applicantName:     templateData.applicant_name     || owner?.owner_name || '',
-        age:               '',
-        nationality:       templateData.nationality        || 'ไทย',
-        juristicRep:       '',
-        refDoc:            '',
-        addressNo:         templateData.address_no         || owner?.office_address || business.shop_address || '',
-        addressMoo:        templateData.address_moo        || owner?.moo || business.shop_moo || '',
-        addressSoi:        templateData.address_soi        || '',
-        addressRoad:       templateData.address_road       || '',
-        addressSubdistrict:templateData.address_subdistrict|| owner?.subdistrict || 'ดอยงาม',
-        addressDistrict:   templateData.address_district   || owner?.district    || 'พาน',
-        addressProvince:   templateData.address_province   || owner?.province    || 'เชียงราย',
-        phone:             templateData.phone              || owner?.phone || '',
-        // checkboxes
-        chkCitizenId:  !isJuristicDefault,
-        chkLicense:    false,
-        chkEia:        false,
-        chkPoa:        false,
-        chkJuristic:   isJuristicDefault,
-        chkSignAuth:   false,
-        chkOther:      false,
-        otherDoc1:     '',
-        otherDoc2:     '',
+    // ข้อมูลเริ่มต้นสำหรับแบบคำขอ สธ.๒ (app_template.pdf)
+    const [formData, setFormData] = useState({
+        operation: templateData.business_operation || business.operation_type || business.category?.category_name || '',
+        applicant_name: templateData.applicant_name || owner?.owner_name || '',
+        age: templateData.age || '',
+        nationality: templateData.nationality || 'ไทย',
+        date_day: templateData.date_day || '',
+        date_month: templateData.date_month || '',
+        date_year: templateData.date_year || '',
+        address_no: templateData.address_no || owner?.office_address || business.shop_address || '-',
+        address_moo: templateData.address_moo || owner?.moo || business.shop_moo || '-',
+        address_soi: templateData.address_soi || '-',
+        address_road: templateData.address_road || '-',
+        address_subdistrict: templateData.address_subdistrict || owner?.subdistrict || 'ดอยงาม',
+        address_district: templateData.address_district || owner?.district || 'พาน',
+        address_province: templateData.address_province || owner?.province || 'เชียงราย',
+        phone: templateData.phone || owner?.phone || '',
+        is_juristic: templateData.is_juristic || Boolean(owner?.juristic_id),
+        request_no: templateData.request_no || business.request_no || '',
     });
 
-    const set = useCallback((key) => (val) => setForm((prev) => ({ ...prev, [key]: val })), []);
-    const toggle = useCallback((key) => () => setForm((prev) => ({ ...prev, [key]: !prev[key] })), []);
-    const [isPrinting, setIsPrinting] = useState(false);
+    // Form Draft ชั่วคราวใน Modal แก้ไข
+    const [draftData, setDraftData] = useState({ ...formData });
 
+    // สร้าง URL สำหรับ PDF แบบคำขอที่ merge ข้อมูลลงใน app_template.pdf โดยตรง
+    const appTemplatePdfUrl = useMemo(() => {
+        const params = new URLSearchParams({
+            operation: formData.operation,
+            applicant_name: formData.applicant_name,
+            age: formData.age,
+            nationality: formData.nationality,
+            date_day: formData.date_day,
+            date_month: formData.date_month,
+            date_year: formData.date_year,
+            address_no: formData.address_no,
+            address_moo: formData.address_moo,
+            address_soi: formData.address_soi,
+            address_road: formData.address_road,
+            address_subdistrict: formData.address_subdistrict,
+            address_district: formData.address_district,
+            address_province: formData.address_province,
+            phone: formData.phone,
+            is_juristic: formData.is_juristic ? '1' : '0',
+            request_no: formData.request_no,
+            _t: String(Date.now()), // ป้องกัน browser cache
+        });
+        return `/documents/app-template/${business.business_id}/pdf?${params.toString()}`;
+    }, [formData, business.business_id]);
+
+    const aph2PdfUrl = `/documents/aph2/${business.business_id}/pdf?_t=${Date.now()}`;
+    const currentPdfUrl = activeDoc === 'app_template' ? appTemplatePdfUrl : aph2PdfUrl;
+
+    const handleOpenEditModal = () => {
+        setDraftData({ ...formData });
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveDraft = (e) => {
+        e.preventDefault();
+        setFormData({ ...draftData });
+        setIsEditModalOpen(false);
+    };
+
+    // เมื่อกดปุ่ม "สั่งพิมพ์"
     const handlePrint = () => {
         setIsPrinting(true);
-        let hasNavigated = false;
 
-        const returnToBusiness = () => {
-            if (hasNavigated) return;
-            hasNavigated = true;
-            window.removeEventListener('afterprint', returnToBusiness);
+        try {
+            if (iframeRef.current && iframeRef.current.contentWindow) {
+                iframeRef.current.contentWindow.focus();
+                iframeRef.current.contentWindow.print();
+            } else {
+                window.open(currentPdfUrl, '_blank');
+            }
+        } catch (err) {
+            window.open(currentPdfUrl, '_blank');
+        }
+
+        // เมื่อสั่งพิมพ์แล้ว นำทางกลับหน้ารายละเอียดสถานประกอบการ พร้อมแจ้งเตือนสำเร็จ
+        setTimeout(() => {
             router.post(`/documents/after-print/${business.business_id}`, {
                 doc_type: activeDoc,
             });
-        };
-
-        window.addEventListener('afterprint', returnToBusiness, { once: true });
-        window.print();
-
-        // Fallback เผื่อเบราว์เซอร์ไม่ fire event afterprint
-        setTimeout(returnToBusiness, 1500);
+        }, 1200);
     };
 
-    /* build PDF download URL with overridden query params */
-    const pdfParams = new URLSearchParams({
-        operation:          form.operation,
-        date_day:           form.dateDay,
-        date_month:         form.dateMonth,
-        date_year:          form.dateYear,
-        applicant_name:     form.applicantName,
-        nationality:        form.nationality,
-        address_no:         form.addressNo,
-        address_moo:        form.addressMoo,
-        address_soi:        form.addressSoi,
-        address_road:       form.addressRoad,
-        address_subdistrict:form.addressSubdistrict,
-        address_district:   form.addressDistrict,
-        address_province:   form.addressProvince,
-        phone:              form.phone,
-        is_juristic:        form.chkJuristic ? '1' : '0',
-    });
-    const appTemplatePdfUrl = `/documents/app-template/${business.business_id}/pdf?${pdfParams}`;
+    const handleReturnToBusiness = () => {
+        router.post(`/documents/after-print/${business.business_id}`, {
+            doc_type: activeDoc,
+        });
+    };
 
     return (
         <AuthenticatedLayout
             title="พิมพ์เอกสารราชการ"
-            description="แบบฟอร์มคำขอรับใบอนุญาตและใบอนุญาต อบต.ดอยงาม"
+            description="แบบฟอร์มคำขอรับใบอนุญาตทางการ (app_template.pdf) และใบอนุญาต อบต.ดอยงาม"
         >
-            <Head title={`แบบพิมพ์เอกสาร - ${business.shop_name || business.business_id}`} />
+            <Head title={`พิมพ์เอกสาร - ${business.shop_name || business.business_id}`} />
 
-            {/* ── Action Bar ── */}
-            <Card className="no-print p-4 mb-6 border-slate-200 shadow-xs">
+            {/* แถบเครื่องมือจัดการเอกสาร (Action Bar) */}
+            <Card className="p-4 mb-5 border-slate-200 shadow-xs">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    {/* ข้อมูลสถานประกอบการ & ปุ่มย้อนกลับ */}
                     <div className="flex items-center gap-3">
                         <Link href={`/businesses/${business.business_id}`}>
-                            <Button variant="outline" size="sm"
-                                className="h-9 px-3 text-xs font-normal text-slate-700 border-slate-300 hover:bg-slate-50 flex items-center gap-1.5 rounded-xl">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-3 text-xs font-normal text-slate-700 border-slate-300 hover:bg-slate-50 flex items-center gap-1.5 rounded-xl"
+                            >
                                 <ArrowLeft className="w-3.5 h-3.5" />
-                                <span>กลับหน้ารายละเอียดร้าน</span>
+                                <span>กลับหน้ารายละเอียด</span>
                             </Button>
                         </Link>
                         <div>
                             <h3 className="text-base font-bold text-slate-900 tracking-tight">
-                                {activeDoc === 'app_template' ? 'แบบคำขอรับใบอนุญาต/ต่อใบอนุญาต' : 'ใบอนุญาตประกอบกิจการ (แบบ อภ.๒)'}
+                                {activeDoc === 'app_template'
+                                    ? 'แบบคำขอรับใบอนุญาต/ต่อใบอนุญาต (แบบฟอร์มทางการ app_template.pdf)'
+                                    : 'ใบอนุญาตประกอบกิจการที่เป็นอันตรายต่อสุขภาพ (แบบ อภ.๒)'}
                             </h3>
                             <p className="text-xs text-slate-500 mt-0.5">
-                                {business.shop_name || 'ไม่มีชื่อทางการค้า'} — {owner?.owner_name}
+                                {business.shop_name || 'ไม่มีชื่อทางการค้า'} — ผู้ขอ: {owner?.owner_name}
                             </p>
                         </div>
                     </div>
 
+                    {/* ปุ่มสลับเอกสาร และปุ่มพิมพ์ */}
                     <div className="flex flex-wrap items-center gap-2">
-                        {/* Tabs */}
+                        {/* แท็บสลับเอกสาร */}
                         <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
-                            <button type="button" onClick={() => setActiveDoc('app_template')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-normal transition flex items-center gap-1.5 ${
+                            <button
+                                type="button"
+                                onClick={() => setActiveDoc('app_template')}
+                                className={`px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 ${
                                     activeDoc === 'app_template'
                                         ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                                        : 'text-slate-600 hover:text-slate-900'}`}>
+                                        : 'text-slate-600 hover:text-slate-900 font-normal'
+                                }`}
+                            >
                                 <FileText className="w-3.5 h-3.5" />
-                                <span>แบบคำขอ</span>
+                                <span>แบบคำขอ (app_template)</span>
                             </button>
-                            <button type="button" onClick={() => setActiveDoc('aph2')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-normal transition flex items-center gap-1.5 ${
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveDoc('aph2')}
+                                className={`px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 ${
                                     activeDoc === 'aph2'
                                         ? 'bg-white text-emerald-800 shadow-xs font-bold'
-                                        : 'text-slate-600 hover:text-slate-900'}`}>
+                                        : 'text-slate-600 hover:text-slate-900 font-normal'
+                                }`}
+                            >
                                 <Award className="w-3.5 h-3.5" />
                                 <span>ใบอนุญาต (อภ.๒)</span>
                             </button>
                         </div>
 
-                        {/* Print */}
+                        {/* ปุ่มแก้ไขข้อมูล (เฉพาะแบบคำขอ) */}
+                        {activeDoc === 'app_template' && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleOpenEditModal}
+                                className="h-9 px-3 text-xs font-normal text-emerald-800 border-emerald-300 hover:bg-emerald-50 rounded-xl flex items-center gap-1.5"
+                            >
+                                <Pencil className="w-3.5 h-3.5" />
+                                <span>แก้ไขข้อมูลในแบบฟอร์ม</span>
+                            </Button>
+                        )}
+
+                        {/* ปุ่มสั่งพิมพ์ */}
                         <Button
                             type="button"
                             onClick={handlePrint}
@@ -217,254 +201,295 @@ export default function DocumentPreview({
                             className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-normal flex items-center gap-1.5 h-9 px-4 rounded-xl shadow-xs"
                         >
                             <Printer className="w-4 h-4" />
-                            <span>{isPrinting ? 'กำลังสั่งพิมพ์...' : 'สั่งพิมพ์'}</span>
+                            <span>{isPrinting ? 'กำลังสั่งพิมพ์...' : 'สั่งพิมพ์เอกสาร'}</span>
                         </Button>
 
-                        {/* Return button */}
+                        {/* ปุ่มดาวน์โหลดไฟล์ PDF ตัวจริง */}
+                        <a
+                            href={currentPdfUrl}
+                            download
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-normal text-xs border border-slate-200 transition shadow-2xs"
+                        >
+                            <FileDown className="w-4 h-4" />
+                            <span>ดาวน์โหลด PDF</span>
+                        </a>
+
+                        {/* ปุ่มเสร็จสิ้น / กลับหน้าร้าน */}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleReturnToBusiness}
+                            className="h-9 px-3 text-xs font-normal text-slate-600 border-slate-200 hover:bg-slate-50 rounded-xl"
+                        >
+                            <span>เสร็จสิ้น / กลับ</span>
+                        </Button>
+                    </div>
+                </div>
+
+                {/* แถบแจ้งเตือนข้อมูลฟอร์มทางการ */}
+                <div className="mt-3 flex items-center justify-between text-xs bg-emerald-50/70 border border-emerald-200 rounded-xl px-3.5 py-2 text-emerald-900">
+                    <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                        <span>
+                            ระบบใช้ไฟล์แบบฟอร์มทางการ <strong>app_template.pdf</strong> ในการกรอกข้อมูลและพิมพ์โดยตรง ตัวหนังสือและระยะบรรทัดถูกต้องตรงตามต้นฉบับ 100%
+                        </span>
+                    </div>
+                    {activeDoc === 'app_template' && (
                         <button
                             type="button"
-                            onClick={() => router.post(`/documents/after-print/${business.business_id}`, { doc_type: activeDoc })}
-                            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-normal text-xs border border-slate-200 transition"
+                            onClick={handleOpenEditModal}
+                            className="text-emerald-800 hover:text-emerald-950 underline font-medium shrink-0 ml-2"
                         >
-                            <span>เสร็จสิ้น / กลับหน้ารายละเอียด</span>
+                            คลิกเพื่อแก้ไขข้อมูลก่อนพิมพ์
                         </button>
-
-                        {/* Download PDF */}
-                        {activeDoc === 'app_template' ? (
-                            <a href={appTemplatePdfUrl} target="_blank" rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-normal text-xs border border-slate-200 transition shadow-2xs">
-                                <FileDown className="w-4 h-4" />
-                                <span>ดาวน์โหลด PDF</span>
-                            </a>
-                        ) : (
-                            <>
-                                <a href={`/documents/aph2/${business.business_id}/pdf`} target="_blank" rel="noreferrer"
-                                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 font-normal text-xs border border-slate-200 transition shadow-2xs">
-                                    <FileDown className="w-4 h-4" />
-                                    <span>ดาวน์โหลด PDF อภ.๒</span>
-                                </a>
-                                <a href={`/documents/aph2/${business.business_id}/word`}
-                                    className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 font-normal text-xs border border-slate-200 transition">
-                                    <FileDown className="w-4 h-4" />
-                                    <span>Word (.docx)</span>
-                                </a>
-                            </>
-                        )}
-                    </div>
+                    )}
                 </div>
-
-                {/* edit hint */}
-                {activeDoc === 'app_template' && (
-                    <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-                        <Pencil className="w-3.5 h-3.5 shrink-0" />
-                        <span>คลิกที่ <strong>ข้อความที่ขีดเส้นใต้</strong> เพื่อแก้ไขข้อมูลก่อนพิมพ์ — กด Enter เพื่อบันทึก หรือ Esc เพื่อยกเลิก</span>
-                    </div>
-                )}
             </Card>
 
-            {/* ── DOCUMENT 1: แบบคำขอ (Editable) ── */}
-            {activeDoc === 'app_template' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 max-w-4xl mx-auto px-16 py-12 text-slate-900 leading-relaxed font-serif text-[15.5px] print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none print:w-full">
+            {/* แสดงเอกสาร PDF ตัวจริงผ่าน Viewer โดยไม่สร้างฟอร์ม HTML จำลองขึ้นมาใหม่ */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-2">
+                <iframe
+                    ref={iframeRef}
+                    key={currentPdfUrl}
+                    src={currentPdfUrl}
+                    title="Official Document PDF"
+                    className="w-full h-[950px] rounded-xl border border-slate-200 bg-slate-50"
+                />
+            </div>
 
-                    {/* เลขที่คำขอ */}
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="border border-slate-800 p-2.5 w-48 text-center text-sm leading-tight">
-                            <div>คำขอเลขที่: ……………/…………………</div>
-                            <div className="text-xs text-slate-500 mt-1">(เจ้าหน้าที่กรอก)</div>
+            {/* Modal สำหรับแก้ไขข้อมูลในแบบฟอร์ม app_template.pdf */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                    <div className="relative bg-white rounded-2xl max-w-3xl w-full p-6 shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+                        <div className="flex items-center justify-between pb-4 border-b border-slate-200 shrink-0">
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900">
+                                    แก้ไขข้อมูลในแบบคำขอรับใบอนุญาต (app_template.pdf)
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-0.5">
+                                    เมื่อแก้ไขแล้ว ข้อมูลจะถูกกรอกลงในไฟล์แบบฟอร์มทางการ app_template.pdf ทันทีโดยรูปแบบไม่เพี้ยน
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
-                    </div>
 
-                    {/* ชื่อแบบฟอร์ม */}
-                    <div className="text-center font-bold text-lg mb-3 tracking-tight">
-                        แบบคำขอรับใบอนุญาต/ต่อใบอนุญาต
-                    </div>
-
-                    {/* ประกอบกิจการ */}
-                    <div className="text-center text-base mb-5">
-                        <span>ประกอบกิจการ: </span>
-                        <EditableField value={form.operation} onChange={set('operation')} wide />
-                    </div>
-
-                    {/* เขียนที่ / วันที่ */}
-                    <div className="flex justify-end mb-6">
-                        <div className="w-96 text-left space-y-2 text-sm">
-                            <div className="flex items-center gap-1">
-                                <span className="shrink-0">เขียนที่:</span>
-                                <EditableField value="อบต.ดอยงาม" onChange={() => {}} />
-                            </div>
-                            <div className="flex items-center gap-1 flex-wrap">
-                                <span className="shrink-0">วันที่:</span>
-                                <EditableField value={form.dateDay} onChange={set('dateDay')} className="w-16" />
-                                <span className="shrink-0">เดือน:</span>
-                                <EditableField value={form.dateMonth} onChange={set('dateMonth')} wide />
-                                <span className="shrink-0">พ.ศ.:</span>
-                                <EditableField value={form.dateYear} onChange={set('dateYear')} className="w-20" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ข้อ ๑ */}
-                    <div className="space-y-3 leading-loose mb-6 text-justify">
-                        <p className="indent-10">
-                            ๑. ข้าพเจ้า:{' '}
-                            <EditableField value={form.applicantName} onChange={set('applicantName')} wide />
-                            {' '}อายุ:{' '}
-                            <EditableField value={form.age} onChange={set('age')} className="w-14" />
-                            {' '}ปี  สัญชาติ:{' '}
-                            <EditableField value={form.nationality} onChange={set('nationality')} />
-                        </p>
-
-                        <p>
-                            โดย:{' '}
-                            <EditableField value={form.juristicRep} onChange={set('juristicRep')} wide />
-                            {' '}ผู้มีอำนาจลงนามแทนนิติบุคคล
-                        </p>
-
-                        <p>
-                            ปรากฏตาม{' '}
-                            <EditableField value={form.refDoc} onChange={set('refDoc')} />
-                            {'  '}ที่อยู่เลขที่:{' '}
-                            <EditableField value={form.addressNo} onChange={set('addressNo')} />
-                            {' '}หมู่ที่:{' '}
-                            <EditableField value={form.addressMoo} onChange={set('addressMoo')} className="w-14" />
-                            {' '}ตรอก/ซอย:{' '}
-                            <EditableField value={form.addressSoi} onChange={set('addressSoi')} />
-                            {' '}ถนน:{' '}
-                            <EditableField value={form.addressRoad} onChange={set('addressRoad')} />
-                        </p>
-
-                        <p>
-                            แขวง/ตำบล:{' '}
-                            <EditableField value={form.addressSubdistrict} onChange={set('addressSubdistrict')} />
-                            {' '}เขต/อำเภอ:{' '}
-                            <EditableField value={form.addressDistrict} onChange={set('addressDistrict')} />
-                            {' '}จังหวัด:{' '}
-                            <EditableField value={form.addressProvince} onChange={set('addressProvince')} />
-                        </p>
-
-                        <p>
-                            หมายเลขโทรศัพท์:{' '}
-                            <EditableField value={form.phone} onChange={set('phone')} wide />
-                            {' '}ผู้ขออนุญาต
-                        </p>
-                    </div>
-
-                    {/* ข้อ ๒ เอกสารหลักฐาน */}
-                    <div className="space-y-2.5 mb-8">
-                        <p>๒. พร้อมคำขอนี้ ข้าพเจ้าได้แนบเอกสารหลักฐานต่าง ๆ มาด้วยแล้ว ดังนี้</p>
-                        <div className="pl-6 space-y-2 text-sm">
-                            {[
-                                { key: 'chkCitizenId', label: 'สำเนาบัตรประจำตัว (ประชาชน/ข้าราชการ/พนักงานรัฐวิสาหกิจ/อื่น ๆ ระบุ …………………………………)' },
-                                { key: 'chkLicense',   label: 'สำเนาใบอนุญาตตามกฎหมายที่เกี่ยวข้อง ได้แก่ ……………………………………………………………………' },
-                                { key: 'chkEia',       label: 'หนังสือให้ความเห็นชอบการประเมินผลกระทบต่อสิ่งแวดล้อม' },
-                                { key: 'chkPoa',       label: 'ใบมอบอำนาจ (ในกรณีที่มีการมอบอำนาจ)' },
-                                { key: 'chkJuristic',  label: 'สำเนาหนังสือรับรองการจดทะเบียนเป็นนิติบุคคล' },
-                                { key: 'chkSignAuth',  label: 'หลักฐานที่แสดงการเป็นผู้มีอำนาจลงนามแทนนิติบุคคล' },
-                            ].map(({ key, label }) => (
-                                <div key={key} className="flex items-start gap-2">
-                                    <EditableCheck checked={form[key]} onChange={toggle(key)} />
-                                    <span>{label}</span>
+                        <form onSubmit={handleSaveDraft} className="overflow-y-auto py-4 space-y-4 pr-1">
+                            {/* ข้อมูลทั่วไป */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                                        ลักษณะการประกอบกิจการ
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={draftData.operation}
+                                        onChange={(e) => setDraftData({ ...draftData, operation: e.target.value })}
+                                        className="w-full text-sm rounded-xl border border-slate-300 py-2 px-3 focus:ring-2 focus:ring-emerald-700"
+                                        placeholder="เช่น จำหน่ายอาหารและเครื่องดื่ม"
+                                    />
                                 </div>
-                            ))}
 
-                            <div className="flex items-start gap-2">
-                                <EditableCheck checked={form.chkOther} onChange={toggle('chkOther')} />
-                                <span>เอกสารและหลักฐานอื่น ๆ ตามที่ราชการส่วนท้องถิ่นประกาศกำหนด คือ</span>
-                            </div>
-                            <div className="pl-8 space-y-1">
-                                <div className="flex items-center gap-1">
-                                    (๑){' '}
-                                    <EditableField value={form.otherDoc1} onChange={set('otherDoc1')} wide />
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                                        ชื่อผู้ขออนุญาต
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={draftData.applicant_name}
+                                        onChange={(e) => setDraftData({ ...draftData, applicant_name: e.target.value })}
+                                        className="w-full text-sm rounded-xl border border-slate-300 py-2 px-3 focus:ring-2 focus:ring-emerald-700"
+                                    />
                                 </div>
-                                <div className="flex items-center gap-1">
-                                    (๒){' '}
-                                    <EditableField value={form.otherDoc2} onChange={set('otherDoc2')} wide />
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                                            อายุ (ปี)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={draftData.age}
+                                            onChange={(e) => setDraftData({ ...draftData, age: e.target.value })}
+                                            className="w-full text-sm rounded-xl border border-slate-300 py-2 px-3 focus:ring-2 focus:ring-emerald-700"
+                                            placeholder="เช่น 45"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                                            สัญชาติ
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={draftData.nationality}
+                                            onChange={(e) => setDraftData({ ...draftData, nationality: e.target.value })}
+                                            className="w-full text-sm rounded-xl border border-slate-300 py-2 px-3 focus:ring-2 focus:ring-emerald-700"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+
+                            {/* วันที่เขียนคำขอ */}
+                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <label className="block text-xs font-bold text-slate-800 mb-2">
+                                    วันที่ยื่นคำขอ
+                                </label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">วันที่</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.date_day}
+                                            onChange={(e) => setDraftData({ ...draftData, date_day: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-3 focus:ring-2 focus:ring-emerald-700"
+                                            placeholder="13"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">เดือน</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.date_month}
+                                            onChange={(e) => setDraftData({ ...draftData, date_month: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-3 focus:ring-2 focus:ring-emerald-700"
+                                            placeholder="พฤศจิกายน"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">พ.ศ.</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.date_year}
+                                            onChange={(e) => setDraftData({ ...draftData, date_year: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-3 focus:ring-2 focus:ring-emerald-700"
+                                            placeholder="2569"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ข้อมูลที่อยู่และเบอร์โทรศัพท์ */}
+                            <div className="space-y-3">
+                                <label className="block text-xs font-bold text-slate-800">
+                                    ที่อยู่ผู้ขออนุญาต
+                                </label>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">บ้านเลขที่</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.address_no}
+                                            onChange={(e) => setDraftData({ ...draftData, address_no: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-2.5"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">หมู่ที่</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.address_moo}
+                                            onChange={(e) => setDraftData({ ...draftData, address_moo: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-2.5"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">ตรอก/ซอย</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.address_soi}
+                                            onChange={(e) => setDraftData({ ...draftData, address_soi: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-2.5"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">ถนน</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.address_road}
+                                            onChange={(e) => setDraftData({ ...draftData, address_road: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-2.5"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">ตำบล</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.address_subdistrict}
+                                            onChange={(e) => setDraftData({ ...draftData, address_subdistrict: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-2.5"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">อำเภอ</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.address_district}
+                                            onChange={(e) => setDraftData({ ...draftData, address_district: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-2.5"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">จังหวัด</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.address_province}
+                                            onChange={(e) => setDraftData({ ...draftData, address_province: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-2.5"
+                                        />
+                                    </div>
+                                    <div>
+                                        <span className="text-[11px] text-slate-500 block mb-1">หมายเลขโทรศัพท์</span>
+                                        <input
+                                            type="text"
+                                            value={draftData.phone}
+                                            onChange={(e) => setDraftData({ ...draftData, phone: e.target.value })}
+                                            className="w-full text-sm rounded-lg border border-slate-300 py-1.5 px-2.5"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ประเภทผู้ขอ: บุคคลธรรมดา หรือ นิติบุคคล */}
+                            <div className="pt-2">
+                                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={draftData.is_juristic}
+                                        onChange={(e) => setDraftData({ ...draftData, is_juristic: e.target.checked })}
+                                        className="rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
+                                    />
+                                    <span>ยื่นคำขอในนามนิติบุคคล (จะทำเครื่องหมาย / ในช่องหนังสือรับรองนิติบุคคล)</span>
+                                </label>
+                            </div>
+
+                            {/* Footer Buttons */}
+                            <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-3 shrink-0">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => setIsEditModalOpen(false)}
+                                    className="text-xs font-normal"
+                                >
+                                    ยกเลิก
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-normal flex items-center gap-1.5 px-5"
+                                >
+                                    <Check className="w-4 h-4" />
+                                    <span>บันทึกและอัปเดตแบบฟอร์ม PDF</span>
+                                </Button>
+                            </div>
+                        </form>
                     </div>
-
-                    {/* รับรอง */}
-                    <div className="space-y-6">
-                        <p>ขอรับรองว่า ข้อความในคำขอนี้เป็นความจริงทุกประการ</p>
-                        <div className="float-right text-center w-80 space-y-3">
-                            <div>(ลงชื่อ)…………………………………………………… ผู้ขออนุญาต</div>
-                            <div className="font-semibold">( {form.applicantName || '…………………………………………………'} )</div>
-                        </div>
-                        <div className="clear-both" />
-                    </div>
-                </div>
-            )}
-
-            {/* ── DOCUMENT 2: ใบอนุญาต อภ.๒ ── */}
-            {activeDoc === 'aph2' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 max-w-4xl mx-auto px-16 py-12 text-slate-900 leading-relaxed font-serif text-[15.5px] print:shadow-none print:border-none print:p-0 print:m-0 print:max-w-none print:w-full">
-                    <div className="text-right text-sm font-bold mb-2">แบบ อภ. ๒</div>
-
-                    <div className="flex justify-center mb-3">
-                        <img src="/images/logo-doingam.png" alt="ตราอบต.ดอยงาม" className="w-20 h-20 object-contain" />
-                    </div>
-
-                    <div className="text-center font-bold text-2xl mb-1 tracking-tight">ใบอนุญาต</div>
-                    <div className="text-center font-bold text-lg mb-8 leading-snug">
-                        ประกอบกิจการที่เป็นอันตรายต่อสุขภาพ<br />
-                        ตามข้อบัญญัติองค์การบริหารส่วนตำบลดอยงาม
-                    </div>
-
-                    <div className="flex justify-between items-center text-sm mb-6">
-                        <div>เล่มที่ <strong className="text-base">{license?.receipt_book || '-'}</strong></div>
-                        <div>เลขที่ <strong className="text-base">{license?.receipt_no || '-'}</strong></div>
-                    </div>
-
-                    <div className="text-justify text-base space-y-4 leading-loose">
-                        <p className="indent-12">
-                            เจ้าพนักงานท้องถิ่นผู้ออกใบอนุญาต ได้อนุญาตให้{' '}
-                            <strong className="border-b border-dotted border-slate-800 px-2">{owner?.owner_name}</strong>
-                            {' '}เลขประจำตัวประชาชน{' '}
-                            <strong className="border-b border-dotted border-slate-800 px-2">{owner?.citizen_id || owner?.juristic_id || '-'}</strong>
-                            {' '}อยู่บ้านเลขที่{' '}
-                            <span className="border-b border-dotted border-slate-800 px-2">{owner?.office_address || '-'}</span>
-                            {' '}หมู่ที่{' '}
-                            <span className="border-b border-dotted border-slate-800 px-2">{owner?.moo || '-'}</span>
-                            {' '}ตำบลดอยงาม อำเภอพาน จังหวัดเชียงราย หมายเลขโทรศัพท์ {owner?.phone || '-'}
-                        </p>
-
-                        <p className="indent-12">
-                            ประกอบกิจการ{' '}
-                            <strong className="border-b border-dotted border-slate-800 px-2">{business.category?.category_name}</strong>
-                            {' '}ประเภทการทำกิจการ{' '}
-                            <strong className="border-b border-dotted border-slate-800 px-2">{business.operation_type}</strong>
-                            {' '}ชื่อสถานประกอบการ{' '}
-                            <strong className="border-b border-dotted border-slate-800 px-2">{business.shop_name || 'ไม่มีชื่อทางการค้า'}</strong>
-                            {' '}ตั้งอยู่เลขที่{' '}
-                            <span className="border-b border-dotted border-slate-800 px-2">{business.shop_address || '-'}</span>
-                            {' '}หมู่ที่{' '}
-                            <span className="border-b border-dotted border-slate-800 px-2">{business.shop_moo || '-'}</span>
-                            {' '}ตำบลดอยงาม อำเภอพาน จังหวัดเชียงราย
-                            {' '}ขนาดพื้นที่ประกอบการ {business.business_area || '-'}
-                            {' '}กำลังเครื่องจักร {business.machine_power || '-'}
-                            {' '}คนงาน {business.worker_count || '-'}
-                        </p>
-                    </div>
-
-                    <div className="my-8 p-5 rounded-xl border border-dashed border-slate-400 bg-slate-50/50 text-sm space-y-2">
-                        <div className="font-bold underline text-slate-800">เงื่อนไขเฉพาะการอนุญาตประกอบกิจการ:</div>
-                        <div><strong>ข้อ ๔.๓:</strong> {inspection?.condition_4_3 || 'ปฏิบัติตามมาตรฐานสุขอนามัยและระเบียบกระทรวงสาธารณสุขโดยเคร่งครัด'}</div>
-                        <div><strong>ข้อ ๔.๔:</strong> {inspection?.condition_4_4 || 'ดูแลรักษาความสะอาด ความปลอดภัย และไม่สร้างความเดือดร้อนรำคาญแก่ชุมชนใกล้เคียง'}</div>
-                    </div>
-
-                    <div className="text-sm space-y-2 mb-12">
-                        <div>ใบอนุญาตนี้สิ้นอายุในวันที่ <strong className="border-b border-dotted border-slate-800 px-2 text-base">{thaiExpireDate}</strong></div>
-                        <div>ค่าธรรมเนียมใบอนุญาต <strong className="text-base">{Number(license?.fee || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</strong> บาท</div>
-                        <div className="text-slate-500 text-xs">ออกให้ ณ วันที่ {thaiIssueDate}</div>
-                    </div>
-
-                    <div className="float-right text-center w-72 space-y-2">
-                        <div className="text-sm">(ลงชื่อ)…………………………………………………………</div>
-                        <div className="text-sm font-semibold">(นายกองค์การบริหารส่วนตำบลดอยงาม)</div>
-                        <div className="text-xs text-slate-500">เจ้าพนักงานท้องถิ่น</div>
-                    </div>
-                    <div className="clear-both" />
                 </div>
             )}
         </AuthenticatedLayout>

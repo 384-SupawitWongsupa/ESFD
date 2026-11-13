@@ -143,12 +143,14 @@ class DocumentService
 
         // Default data from DB
         $data = [
+            'request_no' => $business->request_no ?? '',
             'business_operation' => $business->operation_type ?: ($business->category->category_name ?? ''),
             'written_at' => 'อบต.ดอยงาม',
             'date_day'   => (string)$d->day,
             'date_month' => $thaiMonths[$d->month],
             'date_year'  => (string)($d->year + 543),
             'applicant_name'      => $business->owner->owner_name ?? '',
+            'age'                 => '',
             'nationality'         => 'ไทย',
             'address_no'          => $business->owner->office_address ?: $business->shop_address ?: '-',
             'address_moo'         => $business->owner->moo ?: $business->shop_moo ?: '-',
