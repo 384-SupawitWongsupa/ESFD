@@ -42,19 +42,27 @@ class DocumentController extends Controller
             9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม'
         ];
 
+        $shopName = $business->shop_name;
+        $opType = $business->operation_type ?: ($business->category->category_name ?? '');
+        $businessOperation = $shopName && $opType 
+            ? "{$shopName} ({$opType})" 
+            : ($shopName ?: $opType);
+
         return Inertia::render('Document/Preview', [
             'business' => $business,
             'owner' => $business->owner,
             'license' => $latestLicense,
             'inspection' => $latestInspection,
             'templateData' => [
-                'business_operation' => $business->operation_type ?: ($business->category->category_name ?? ''),
+                'business_operation' => $businessOperation,
                 'written_at' => 'อบต.ดอยงาม',
                 'date_day' => (string)$d->day,
                 'date_month' => $thaiMonths[$d->month],
                 'date_year' => (string)($d->year + 543),
                 'applicant_name' => $business->owner->owner_name ?? '',
+                'age' => '',
                 'nationality' => 'ไทย',
+                'juristic_rep' => !empty($business->owner->juristic_id) ? ($business->owner->owner_name ?? '') : '',
                 'address_no' => $business->owner->office_address ?: $business->shop_address ?: '-',
                 'address_moo' => $business->owner->moo ?: $business->shop_moo ?: '-',
                 'address_soi' => '-',
@@ -64,6 +72,7 @@ class DocumentController extends Controller
                 'address_province' => $business->owner->province ?: 'เชียงราย',
                 'phone' => $business->owner->phone ?: '',
                 'is_juristic' => !empty($business->owner->juristic_id),
+                'request_no' => $business->request_no ?: '',
             ],
             'thaiIssueDate' => $latestLicense && $latestLicense->receipt_date 
                 ? DocumentService::thaiDate($latestLicense->receipt_date) 
@@ -82,10 +91,11 @@ class DocumentController extends Controller
         $overrides = [];
         $allowed = [
             'operation', 'date_day', 'date_month', 'date_year',
-            'applicant_name', 'age', 'nationality',
+            'applicant_name', 'age', 'nationality', 'juristic_rep',
             'address_no', 'address_moo', 'address_soi', 'address_road',
             'address_subdistrict', 'address_district', 'address_province',
             'phone', 'is_juristic', 'request_no',
+            'chk_1', 'chk_2', 'chk_3', 'chk_4', 'chk_5', 'chk_6', 'chk_7',
         ];
         foreach ($allowed as $key) {
             if ($request->has($key)) {
@@ -93,7 +103,12 @@ class DocumentController extends Controller
                 // map query param names to data keys used by DocumentService
                 $map = ['operation' => 'business_operation'];
                 $dataKey = $map[$key] ?? $key;
-                $overrides[$dataKey] = $key === 'is_juristic' ? (bool)(int)$value : $value;
+
+                if (in_array($key, ['is_juristic', 'chk_1', 'chk_2', 'chk_3', 'chk_4', 'chk_5', 'chk_6', 'chk_7'])) {
+                    $overrides[$dataKey] = (bool)(int)$value;
+                } else {
+                    $overrides[$dataKey] = $value;
+                }
             }
         }
 

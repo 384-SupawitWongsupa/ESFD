@@ -76,10 +76,12 @@ def generate_pdf(template_path, output_path, data):
     nationality = data.get('nationality') or 'ไทย'
     can.drawString(430, 571.3, nationality)
 
-    # นิติบุคคล
-    is_juristic = data.get('is_juristic', False)
-    if is_juristic and applicant:
-        can.drawString(100, 543.4, applicant)
+    # นิติบุคคล / ผู้มีอำนาจลงนาม
+    juristic_rep = data.get('juristic_rep') or ''
+    if juristic_rep:
+        can.drawString(100, 541.4, juristic_rep)
+    elif data.get('is_juristic') and applicant:
+        can.drawString(100, 541.4, applicant)
 
     # 6. ที่อยู่
     can.drawString(205, 515.9, to_thai_digits(data.get('address_no') or ''))
@@ -93,11 +95,29 @@ def generate_pdf(template_path, output_path, data):
     # 7. หมายเลขโทรศัพท์
     can.drawString(150, 460.6, to_thai_digits(data.get('phone') or ''))
 
-    # 8. เครื่องหมาย / ในรายการเอกสารแนบ
-    if is_juristic:
-        can.drawString(112, 294.7, '/')
+    # 8. เครื่องหมาย / ในรายการเอกสารแนบ (ข้อ ๒) แต่ละข้อสามารถเลือกติ๊กถูกเองได้
+    chk_positions = {
+        'chk_1': (112.5, 405.0), # สำเนาบัตรประจำตัวประชาชน
+        'chk_2': (112.5, 377.0), # สำเนาใบอนุญาตตามกฎหมาย
+        'chk_3': (112.5, 349.5), # หนังสือ EIA
+        'chk_4': (112.5, 322.0), # ใบมอบอำนาจ
+        'chk_5': (112.5, 294.5), # สำเนาหนังสือรับรองการจดทะเบียนเป็นนิติบุคคล
+        'chk_6': (112.5, 266.5), # หลักฐานอำนาจลงนามแทนนิติบุคคล
+        'chk_7': (112.5, 239.0), # เอกสารและหลักฐานอื่นๆ
+    }
+
+    has_explicit_chk = any(k in data for k in chk_positions)
+    if has_explicit_chk:
+        for k, (cx, cy) in chk_positions.items():
+            val = data.get(k)
+            if val is True or val == '1' or val == 1 or val == 'true':
+                can.drawString(cx, cy, '/')
     else:
-        can.drawString(112, 405.0, '/')
+        # Default fallback
+        if data.get('is_juristic'):
+            can.drawString(112.5, 294.5, '/')
+        else:
+            can.drawString(112.5, 405.0, '/')
 
     # 9. ลายเซ็นชื่อผู้ขออนุญาตในวงเล็บท้ายเอกสาร
     if applicant:
