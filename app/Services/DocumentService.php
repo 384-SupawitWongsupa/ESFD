@@ -161,6 +161,14 @@ class DocumentService
             'address_province'    => $business->owner->province    ?: 'เชียงราย',
             'phone'               => $business->owner->phone ?: '',
             'is_juristic'         => !empty($business->owner->juristic_id),
+            'juristic_rep'        => !empty($business->owner->juristic_id) ? ($business->owner->owner_name ?? '') : '',
+            'chk_1'               => empty($business->owner->juristic_id),
+            'chk_2'               => false,
+            'chk_3'               => false,
+            'chk_4'               => false,
+            'chk_5'               => !empty($business->owner->juristic_id),
+            'chk_6'               => false,
+            'chk_7'               => false,
         ];
 
         // Apply user overrides from the editable preview form
