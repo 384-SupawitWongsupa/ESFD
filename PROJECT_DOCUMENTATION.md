@@ -1,57 +1,108 @@
-# รายละเอียดสถาปัตยกรรมและฟีเจอร์ระบบทะเบียนกิจการ อบต.ดอยงาม (DoiNgamApp)
+# ระบบสารสนเทศทะเบียนกิจการและใบอนุญาตออนไลน์ อบต.ดอยงาม (ESFD)
+## (Electronic System for Doi Ngam SAO - Health Hazard Business Licensing System)
 
-> **เอกสารคู่มือทางเทคนิคและสารสนเทศระบบฉบับสมบูรณ์**  
-> **หน่วยงาน:** องค์การบริหารส่วนตำบลดอยงาม อำเภอพาน จังหวัดเชียงราย  
-> **ระบบ:** DoiNgamApp (ระบบทะเบียนกิจการและใบอนุญาตออนไลน์)  
+> **เอกสารข้อกำหนดทางเทคนิค สถาปัตยกรรมระบบ ฐานข้อมูล และคู่มือฟีเจอร์ฉบับสมบูรณ์**  
+> **หน่วยงาน:** กองสาธารณสุขและสิ่งแวดล้อม องค์การบริหารส่วนตำบลดอยงาม อำเภอพาน จังหวัดเชียงราย  
+> **เวอร์ชันระบบ:** 2.0.0 (Production-Ready Modern Stack)  
+> **Repository:** `https://github.com/384-SupawitWongsupa/ESFD.git`
+
+---
+
+## สารบัญ (Table of Contents)
+1. [บทนำและภาพรวมของระบบ (System Overview)](#1-บทนำและภาพรวมของระบบ-system-overview)
+2. [เทคโนโลยีและเครื่องมือที่ใช้ในการพัฒนา (Technology Stack)](#2-เทคโนโลยีและเครื่องมือที่ใช้ในการพัฒนา-technology-stack)
+3. [สถาปัตยกรรมฐานข้อมูลแบบละเอียด (Database Schema Specification)](#3-สถาปัตยกรรมฐานข้อมูลแบบละเอียด-database-schema-specification)
+   - 3.1 แผนภาพความสัมพันธ์ฐานข้อมูล (ER Diagram)
+   - 3.2 สรุปจำนวนตารางและจำนวนฟิลด์ทั้งหมด
+   - 3.3 รายละเอียดตารางระบบงานหลัก (Core Business Tables - 6 ตาราง)
+   - 3.4 รายละเอียดตารางความปลอดภัยและผู้ใช้งาน (Auth & System Tables - 3 ตาราง)
+   - 3.5 รายละเอียดตารางสนับสนุนของ Framework (Framework Tables - 5 ตาราง)
+4. [วงจรการทำงานของระบบ (4-Stage Workflow Lifecycle)](#4-วงจรการทำงานของระบบ-4-stage-workflow-lifecycle)
+5. [รายละเอียดฟีเจอร์ทั้งหมดของระบบ (Complete Feature Breakdown)](#5-รายละเอียดฟีเจอร์ทั้งหมดของระบบ-complete-feature-breakdown)
+6. [ระบบพิมพ์เอกสารราชการและเทคนิค PDF Overlay (Official Document Generation)](#6-ระบบพิมพ์เอกสารราชการและเทคนิค-pdf-overlay)
+7. [ระบบอ่านบัตรประจำตัวประชาชน (Thai Smart Card Integration)](#7-ระบบอ่านบัตรประจำตัวประชาชน-thai-smart-card-integration)
+8. [การไหลของข้อมูลภาพรวม (End-to-End Data Flow Architecture)](#8-การไหลของข้อมูลภาพรวม-end-to-end-data-flow-architecture)
+9. [โครงสร้างโฟลเดอร์ซอร์สโค้ด (Directory Structure)](#9-โครงสร้างโฟลเดอร์ซอร์สโค้ด-directory-structure)
+10. [ขั้นตอนการติดตั้งและตั้งค่าระบบ (Setup & Deployment Guide)](#10-ขั้นตอนการติดตั้งและตั้งค่าระบบ-setup--deployment-guide)
+11. [โครงสร้างกิ่งงานของระบบ (Git Branching Strategy)](#11-โครงสร้างกิ่งงานของระบบ-git-branching-strategy)
 
 ---
 
 ## 1. บทนำและภาพรวมของระบบ (System Overview)
 
-**DoiNgamApp** เป็นเว็บแอปพลิเคชันบริหารจัดการงานทะเบียนพาณิชย์และสุขาภิบาลสำหรับองค์กรปกครองส่วนท้องถิ่น พัฒนาขึ้นเพื่อทดแทนระบบเอกสารกระดาษและ Google Sheets เดิม โดยเปลี่ยนผ่านสู่ระบบฐานข้อมูลเชิงสัมพันธ์ (Relational Database) ตามมาตรฐาน 3rd Normal Form (3NF) เชื่อมต่ออุปกรณ์เครื่องอ่านบัตรประชาชน (Smart Card Reader) สำหรับการลงทะเบียนและสืบค้นข้อมูลหน้างาน ตลอดจนมีระบบสร้างเอกสารราชการ (ใบอนุญาต อภ.๒ และแบบคำขอ) ในรูปแบบ PDF และ Word อัตโนมัติ
+**ESFD (Electronic System for Doi Ngam SAO)** เป็นเว็บแอปพลิเคชันบริหารจัดการกระบวนการออกใบอนุญาตประกอบกิจการที่เป็นอันตรายต่อสุขภาพ ตามพระราชบัญญัติการสาธารณสุข พ.ศ. 2535 และข้อบัญญัติองค์การบริหารส่วนตำบลดอยงาม อำเภอพาน จังหวัดเชียงราย
+
+ระบบถูกออกแบบมาเพื่อปฏิรูประบบการทำงานจากเดิมที่บันทึกข้อมูลซ้ำซ้อนในสมุดทะเบียนกระดาษและ Google Sheets สู่ระบบฐานข้อมูลเชิงสัมพันธ์ (Relational Database) ตามหลักการ **3rd Normal Form (3NF)** ป้องกันการซ้ำซ้อนของข้อมูล เชื่อมต่อกับอุปกรณ์เครื่องอ่านบัตรประจำตัวประชาชน (Smart Card Reader) ผ่านพอร์ต USB และสร้างเอกสารราชการ (แบบคำขอรับใบอนุญาต อบต.ดอยงาม และแบบ อภ.๒) ลงบนเทมเพลตมาตรฐานได้อย่างแม่นยำ พร้อมระบบติดตามวันหมดอายุของใบอนุญาตแบบ Real-time
 
 ---
 
 ## 2. เทคโนโลยีและเครื่องมือที่ใช้ในการพัฒนา (Technology Stack)
 
-| ส่วนประกอบ | เทคโนโลยี / ไลบรารี | เวอร์ชัน / รายละเอียด | หน้าที่และความสำคัญ |
-| :--- | :--- | :--- | :--- |
-| **Backend & UI Framework** | **Python** | 3.12+ | ภาษาหลักในการพัฒนาตรรกะระบบ |
-| | **Streamlit** | ล่าสุด | Full-stack Web Framework สำหรับสร้าง Interactive UI |
-| **Database (RDBMS)** | **MySQL Server** | 8.0+ | ฐานข้อมูลเชิงสัมพันธ์หลัก จัดเก็บข้อมูลกิจการ ผู้ประกอบการ ใบอนุญาต และการออกตรวจ |
-| **Database Driver & ORM** | **SQLAlchemy** | 2.0+ | Object Relational Mapping และจัดการ Connection Pool (`@st.cache_resource`, `pool_pre_ping=True`) |
-| | **PyMySQL** | ล่าสุด | Python MySQL Client Driver |
-| **Authentication DB** | **Google Firebase Firestore** | Cloud Firestore | ฐานข้อมูล NoSQL จัดเก็บข้อมูลบัญชีผู้ใช้งาน และสถานะการอนุมัติสิทธิ์ |
-| **Security & Cryptography** | **bcrypt** | ล่าสุด | อัลกอริทึมการเข้ารหัสทางเดียว (Salt & Hash) สำหรับรหัสผ่านผู้ใช้งาน |
-| **Hardware Integration** | **pyscard** | 2.3+ | เชื่อมต่อ PC/SC Smart Card Reader อ่านข้อมูลชิปบัตรประจำตัวประชาชนไทยผ่านคำสั่ง APDU |
-| **Document Generation** | **ReportLab** | ล่าสุด | สร้างเอกสาร PDF พิกัดแม่นยำ พร้อมฝังฟอนต์มาตรฐานราชการไทย (`THSarabunNew.ttf`) |
-| | **python-docx** | ล่าสุด | สร้างและแก้ไขไฟล์ Microsoft Word (`.docx`) สำหรับแบบฟอร์มที่มีเงื่อนไขพิเศษ |
-| | **pypdf** | ล่าสุด | จัดการรวมหน้าและพิมพ์ข้อความซ้อนทับ (Overlay) ลงบนแบบฟอร์มเทมเพลตราชการ |
-| **Spreadsheet & Reporting** | **pandas** | ล่าสุด | จัดการโครงสร้างข้อมูลแบบ DataFrame คัดกรองและประมวลผลสถิติ |
-| | **xlsxwriter** | ล่าสุด | ส่งออกรายงานสถิติและรายชื่อแจ้งเตือนเป็นไฟล์ Excel (`.xlsx`) |
-| **Cloud Storage & API** | **Google Drive** | Apps Script Web App | จัดเก็บไฟล์ภาพถ่ายและเอกสารสแกนการออกตรวจผ่าน REST API |
-| | **requests** | ล่าสุด | ส่ง HTTP POST Requests ข้อมูลภาพแบบ Base64 ไปยัง Google Apps Script |
+ระบบพัฒนาบนสถาปัตยกรรม **Modern Monolithic SPA** ที่ผสานพลังของ Laravel และ React เข้าด้วยกันอย่างไร้รอยต่อผ่าน Inertia.js โดยมีรายละเอียดเทคโนโลยีดังนี้:
+
+| ส่วนประกอบ (Layer) | เทคโนโลยี / เครื่องมือ | เวอร์ชัน | บทบาทและหน้าที่ในระบบ |
+| :--- | :--- | :---: | :--- |
+| **Backend Framework** | **PHP** | 8.2+ | ภาษาหลักสำหรับประมวลผลทางฝั่งเซิร์ฟเวอร์ |
+| | **Laravel Framework** | 12.0+ | MVC Framework ดูแล Routing, Eloquent ORM, Middleware, Database Migrations |
+| **Frontend Framework** | **React** | 19.3.1 | ไลบรารีสร้าง User Interface แบบ Component-based ตอบสนองฉับไว |
+| | **Inertia.js (React)** | 3.11.0 | สะพานเชื่อมระหว่าง Laravel และ React แบบไม่ต้องเขียน REST API แยกต่างหาก |
+| **Styling & Design** | **Tailwind CSS** | 4.0.0 | Utility-first CSS Framework พร้อม `@tailwindcss/vite` จัดการธีมและ Responsive UI |
+| | **Lucide React** | 1.72.0 | ชุดไอคอน UI คุณภาพสูง |
+| | **Radix UI** | 2.4.1 | Headless Accessible UI Primitives (Select, Modal, Dialog) |
+| **Data Visualization** | **Recharts** | 3.10.1 | ชาร์ตวิเคราะห์ข้อมูลสถิติ (Donut Chart, Bar Chart) บนหน้า Dashboard |
+| **Notifications** | **Sonner** | 2.0.8 | Toast Notification แสดงผลสถานะสำเร็จ/แจ้งเตือนที่สวยงามและนุ่มนวล |
+| **Spreadsheet** | **SheetJS (xlsx)** | 0.18.5 | สร้างและส่งออกไฟล์ Microsoft Excel (.xlsx) |
+| **Database (RDBMS)** | **MySQL Server** | 8.0+ | ฐานข้อมูลเชิงสัมพันธ์หลัก รองรับภาษาไทยสมบูรณ์แบบ (`utf8mb4_unicode_ci`) |
+| **Hardware Integration** | **Python** | 3.12+ | ตัวขับเคลื่อนงานเฉพาะทางฮาร์ดแวร์และการจัดการ PDF |
+| | **pyscard** | 2.3+ | ไลบรารีเชื่อมต่อเครื่องอ่านบัตร PC/SC ส่งคำสั่ง APDU ดึงข้อมูลจากชิปบัตรประชาชนไทย (TIS-620) |
+| **Document Generation** | **ReportLab** | 4.x | ไลบรารี Python วาดข้อความลงบน Canvas พิกัด Point ฝังฟอนต์ `THSarabunNew.ttf` |
+| | **pypdf** | 4.x | ดำเนินการ Merge / Overlay ข้อความลงบนแบบฟอร์มเทมเพลตทางการ (`app_template.pdf`) |
+| | **Dompdf (Laravel)** | 3.x | เอนจินเรนเดอร์เอกสาร PDF ฝั่ง PHP (`barryvdh/laravel-dompdf`) สำหรับ อภ.๒ |
+| | **PHPWord** | 1.3+ | สร้างและแก้ไขเอกสาร Microsoft Word (.docx) สำหรับข้อกำหนดเงื่อนไข 4.3/4.4 |
+| **Bundler & Tooling** | **Vite** | 7.0.7 | เครื่องมือ Build และ Hot-Module Replacement (HMR) ความเร็วสูง |
+| | **Composer** | 2.x | PHP Dependency Manager |
+| | **Git & GitHub** | ล่าสุด | ระบบควบคุมเวอร์ชันซอร์สโค้ด (Version Control System) |
 
 ---
 
 ## 3. สถาปัตยกรรมฐานข้อมูลแบบละเอียด (Database Schema Specification)
 
-ระบบใช้ฐานข้อมูล **MySQL** ชื่อ `doingam_db` เข้ารหัสแบบ `utf8mb4_unicode_ci` รองรับภาษาไทย 100% ออกแบบตามมาตรฐาน **Normalization (3NF)** เพื่อขจัดปัญหาข้อมูลซ้ำซ้อน (Data Redundancy)
+### 3.1 แผนภาพความสัมพันธ์ฐานข้อมูล (ER Diagram)
 
 ```mermaid
 erDiagram
-    owners ||--o{ businesses : "1 owner owns N businesses"
-    business_categories ||--o{ businesses : "1 category has N businesses"
-    businesses ||--o{ licenses : "1 business has N licenses"
-    businesses ||--o{ inspection_records : "1 business has N inspections"
-    inspection_rounds ||--o{ inspection_records : "1 round inspects N businesses"
+    users {
+        bigint id PK
+        string username UK
+        string name
+        string email UK
+        string position
+        enum role
+        enum status
+        string password
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    business_categories ||--o{ businesses : "categorizes (1:N)"
+    owners ||--o{ businesses : "owns (1:N)"
+    businesses ||--o{ licenses : "holds (1:N)"
+    businesses ||--o{ inspection_records : "inspected in (1:N)"
+    inspection_rounds ||--o{ inspection_records : "contains (1:N)"
+
+    business_categories {
+        int category_id PK
+        string category_name UK
+        timestamp created_at
+        timestamp updated_at
+    }
 
     owners {
         int owner_id PK
-        string citizen_id
-        string juristic_id
-        string owner_name
-        string phone
+        string citizen_id "INDEX"
+        string juristic_id "INDEX"
+        string owner_name "INDEX"
+        string phone "INDEX"
         string office_address
         string moo
         string subdistrict
@@ -61,16 +112,11 @@ erDiagram
         timestamp updated_at
     }
 
-    business_categories {
-        int category_id PK
-        string category_name UK
-    }
-
     businesses {
         int business_id PK
         int owner_id FK
         int category_id FK
-        string shop_name
+        string shop_name "INDEX"
         text operation_type
         string shop_address
         string shop_moo
@@ -78,6 +124,10 @@ erDiagram
         string business_area
         string machine_power
         string worker_count
+        string inspection_status "INDEX"
+        string workflow_status "INDEX"
+        date request_date
+        string request_no
         timestamp created_at
         timestamp updated_at
     }
@@ -89,8 +139,10 @@ erDiagram
         string receipt_book
         string receipt_no
         date receipt_date
-        date expire_date
-        enum status
+        date expire_date "INDEX"
+        string status "INDEX"
+        boolean is_printed "INDEX"
+        timestamp printed_at
         timestamp created_at
         timestamp updated_at
     }
@@ -98,8 +150,9 @@ erDiagram
     inspection_rounds {
         int round_id PK
         string round_name UK
-        date inspection_date
+        date inspection_date "INDEX"
         timestamp created_at
+        timestamp updated_at
     }
 
     inspection_records {
@@ -111,210 +164,563 @@ erDiagram
         text file_url
         text notes
         timestamp created_at
+        timestamp updated_at
     }
 ```
 
 ---
 
-### 3.1 รายละเอียดตารางใน MySQL (Tables & Fields)
+### 3.2 สรุปจำนวนตารางและจำนวนฟิลด์ทั้งหมด
 
-#### ตารางที่ 1: `business_categories` (หมวดหมู่ประเภทกิจการหลัก)
-*ตารางเก็บประเภทกิจการตามข้อบัญญัติท้องถิ่น ป้องกันการพิมพ์ชื่อประเภทผิดพลาด*
+ระบบมีโครงสร้างฐานข้อมูลรวมทั้งสิ้น **14 ตาราง** แบ่งออกเป็น 3 กลุ่มดังนี้:
 
-| ลำดับ | ฟิลด์ (Field Name) | ประเภทข้อมูล (Data Type) | คีย์ / ข้อกำหนด | คำอธิบาย |
-| :---: | :--- | :--- | :---: | :--- |
-| 1 | `category_id` | `INT` | **PK**, AUTO_INCREMENT | รหัสประเภทกิจการ |
-| 2 | `category_name` | `VARCHAR(100)` | **UNIQUE**, NOT NULL | ชื่อประเภทกิจการ เช่น "สถานประกอบกิจการ", "จำหน่าย/สะสมอาหาร", "ตลาด" |
+| กลุ่มตาราง | รายชื่อตาราง | จำนวนฟิลด์ | บทบาทหน้าที่ |
+| :--- | :--- | :---: | :--- |
+| **1. ตารางหลักของระบบงาน (Core Business)** | `business_categories` | 4 | หมวดหมู่ประเภทกิจการหลัก |
+| | `owners` | 12 | ข้อมูลเจ้าของ / ผู้ประกอบการ / นิติบุคคล |
+| | `businesses` | 17 | ข้อมูลสถานประกอบการ / ร้านค้า / ที่ตั้ง |
+| | `licenses` | 12 | ประวัติใบอนุญาต การชำระเงิน และวันหมดอายุ |
+| | `inspection_rounds` | 5 | รอบวาระการออกตรวจประเมินสุขลักษณะ |
+| | `inspection_records` | 9 | บันทึกผลการตรวจรายสถานประกอบการ |
+| **2. ตารางผู้ใช้และความปลอดภัย (Auth & Users)** | `users` | 12 | บัญชีผู้ใช้งานระบบ ระดับสิทธิ์ และสถานะ |
+| | `password_reset_tokens` | 3 | โทเค็นสำหรับการรีเซ็ตรหัสผ่าน |
+| | `sessions` | 6 | ข้อมูล Active Session ของผู้ใช้ในระบบ |
+| **3. ตารางสนับสนุนของ Framework** | `cache` | 3 | ระบบแคชของ Laravel |
+| | `cache_locks` | 3 | ป้องกัน Race Condition ในแคช |
+| | `jobs` | 7 | งานประมวลผลพื้นหลัง (Queue Jobs) |
+| | `job_batches` | 10 | กลุ่มงานคิวแบบกลุ่ม |
+| | `failed_jobs` | 7 | บันทึกข้อผิดพลาดของงานคิวที่ล้มเหลว |
+| **รวมทั้งสิ้น** | **14 ตาราง** | **110 ฟิลด์** | **(Core Business: 6 ตาราง 59 ฟิลด์ / Users: 3 ตาราง 21 ฟิลด์)** |
 
 ---
 
-#### ตารางที่ 2: `owners` (ข้อมูลผู้ประกอบการ / เจ้าของ / นิติบุคคล)
-*แยกข้อมูลบุคคล/นิติบุคคลออกจากสถานประกอบการ (ผู้ประกอบการ 1 รายมีได้หลายกิจการ)*
+### 3.3 รายละเอียดตารางระบบงานหลัก (Core Business Tables)
 
-| ลำดับ | ฟิลด์ (Field Name) | ประเภทข้อมูล (Data Type) | คีย์ / ข้อกำหนด | คำอธิบาย |
-| :---: | :--- | :--- | :---: | :--- |
-| 1 | `owner_id` | `INT` | **PK**, AUTO_INCREMENT | รหัสประจำตัวผู้ประกอบการ |
-| 2 | `citizen_id` | `VARCHAR(20)` | NULL, **INDEX** | เลขประจำตัวประชาชน 13 หลัก (บุคคลธรรมดา) |
-| 3 | `juristic_id` | `VARCHAR(50)` | NULL, **INDEX** | ทะเบียนนิติบุคคลเลขที่ (ห้างหุ้นส่วน / บริษัท) |
-| 4 | `owner_name` | `VARCHAR(255)` | NOT NULL, **INDEX** | คำนำหน้า ชื่อ และนามสกุล หรือชื่อนิติบุคคล |
-| 5 | `phone` | `VARCHAR(50)` | NULL, **INDEX** | หมายเลขโทรศัพท์ติดต่อของผู้ประกอบการ |
-| 6 | `office_address` | `VARCHAR(255)` | NULL | ที่อยู่สำนักงาน / บ้านเลขที่ตามทะเบียนบ้าน |
-| 7 | `moo` | `VARCHAR(10)` | NULL | หมู่ที่ตามทะเบียนบ้าน |
-| 8 | `subdistrict` | `VARCHAR(100)` | DEFAULT 'ดอยงาม' | ตำบล |
-| 9 | `district` | `VARCHAR(100)` | DEFAULT 'พาน' | อำเภอ |
-| 10 | `province` | `VARCHAR(100)` | DEFAULT 'เชียงราย' | จังหวัด |
-| 11 | `created_at` | `TIMESTAMP` | CURRENT_TIMESTAMP | วันที่และเวลาที่บันทึกข้อมูล |
-| 12 | `updated_at` | `TIMESTAMP` | ON UPDATE CURRENT_TIMESTAMP | วันที่และเวลาที่มีการปรับปรุงล่าสุด |
+#### ตารางที่ 1: `business_categories` (หมวดหมู่ประเภทกิจการหลัก)
+*ตารางกำหนดกลุ่มประเภทกิจการตามระเบียบข้อบัญญัติท้องถิ่น*
+- **Primary Key:** `category_id`
+- **จำนวนฟิลด์:** 4 ฟิลด์
+
+| ลำดับ | ชื่อฟิลด์ (Field Name) | ประเภทข้อมูล (Type) | Nullable | คีย์ / คุณลักษณะ | คำอธิบายการใช้งาน |
+| :---: | :--- | :--- | :---: | :---: | :--- |
+| 1 | `category_id` | `INT UNSIGNED` | NO | **PK**, AUTO_INCREMENT | รหัสประเภทกิจการ |
+| 2 | `category_name` | `VARCHAR(100)` | NO | **UNIQUE** | ชื่อหมวดหมู่ เช่น "สถานประกอบกิจการ", "จำหน่าย/สะสมอาหาร", "ตลาด" |
+| 3 | `created_at` | `TIMESTAMP` | YES | - | วันเวลาที่สร้างข้อมูล |
+| 4 | `updated_at` | `TIMESTAMP` | YES | - | วันเวลาที่แก้ไขข้อมูลล่าสุด |
+
+---
+
+#### ตารางที่ 2: `owners` (ข้อมูลเจ้าของ / ผู้ประกอบการ / นิติบุคคล)
+*แยกข้อมูลบุคคล/นิติบุคคลออกจากสถานประกอบการ (ผู้ประกอบการ 1 คนสามารถเป็นเจ้าของได้หลายสถานประกอบการ 1:N)*
+- **Primary Key:** `owner_id`
+- **จำนวนฟิลด์:** 12 ฟิลด์
+
+| ลำดับ | ชื่อฟิลด์ (Field Name) | ประเภทข้อมูล (Type) | Nullable | คีย์ / คุณลักษณะ | คำอธิบายการใช้งาน |
+| :---: | :--- | :--- | :---: | :---: | :--- |
+| 1 | `owner_id` | `INT UNSIGNED` | NO | **PK**, AUTO_INCREMENT | รหัสประจำตัวผู้ประกอบการ |
+| 2 | `citizen_id` | `VARCHAR(20)` | YES | **INDEX** | เลขประจำตัวประชาชน 13 หลัก (กรณีบุคคลธรรมดา) |
+| 3 | `juristic_id` | `VARCHAR(50)` | YES | **INDEX** | เลขทะเบียนนิติบุคคล (กรณีบริษัท/ห้างหุ้นส่วน) |
+| 4 | `owner_name` | `VARCHAR(255)` | NO | **INDEX** | คำนำหน้า ชื่อ และนามสกุล หรือชื่อนิติบุคคล |
+| 5 | `phone` | `VARCHAR(50)` | YES | **INDEX** | หมายเลขโทรศัพท์หลักของผู้ประกอบการ |
+| 6 | `office_address` | `VARCHAR(255)` | YES | - | ที่อยู่สำนักงาน หรือที่อยู่ตามบัตรประชาชน (บ้านเลขที่) |
+| 7 | `moo` | `VARCHAR(10)` | YES | - | หมู่ที่ ตามที่อยู่ผู้ประกอบการ |
+| 8 | `subdistrict` | `VARCHAR(100)` | NO | DEFAULT `'ดอยงาม'` | ตำบล |
+| 9 | `district` | `VARCHAR(100)` | NO | DEFAULT `'พาน'` | อำเภอ |
+| 10 | `province` | `VARCHAR(100)` | NO | DEFAULT `'เชียงราย'` | จังหวัด |
+| 11 | `created_at` | `TIMESTAMP` | YES | - | วันเวลาที่ลงทะเบียนผู้ประกอบการ |
+| 12 | `updated_at` | `TIMESTAMP` | YES | - | วันเวลาที่มีการปรับปรุงข้อมูลล่าสุด |
 
 ---
 
 #### ตารางที่ 3: `businesses` (ข้อมูลสถานประกอบการ / ร้านค้า)
-*เก็บรายละเอียดที่ตั้งและลักษณะทางกายภาพของสถานที่ประกอบการ*
+*เก็บรายละเอียดลักษณะการดำเนินกิจการ ขนาดทางกายภาพ และสถานะ Workflow ตลอดวงจร*
+- **Primary Key:** `business_id`
+- **Foreign Keys:** `owner_id` -> `owners.owner_id`, `category_id` -> `business_categories.category_id`
+- **จำนวนฟิลด์:** 17 ฟิลด์
 
-| ลำดับ | ฟิลด์ (Field Name) | ประเภทข้อมูล (Data Type) | คีย์ / ข้อกำหนด | คำอธิบาย |
-| :---: | :--- | :--- | :---: | :--- |
-| 1 | `business_id` | `INT` | **PK** | รหัสสถานประกอบการ (อ้างอิงลำดับเดิมเพื่อความต่อเนื่อง) |
-| 2 | `owner_id` | `INT` | **FK** -> `owners` | รหัสผู้ประกอบการเจ้าของกิจการ |
-| 3 | `category_id` | `INT` | **FK** -> `categories` | รหัสประเภทกิจการหลัก |
-| 4 | `shop_name` | `VARCHAR(255)` | NULL, **INDEX** | ชื่อสถานประกอบการ / ชื่อร้านค้า |
-| 5 | `operation_type` | `TEXT` | NOT NULL | รายละเอียดประเภทการทำกิจการเฉพาะ เช่น ร้านของชำ, อู่ซ่อมรถ |
-| 6 | `shop_address` | `VARCHAR(255)` | NULL | ที่ตั้งสถานประกอบการ (เลขที่) |
-| 7 | `shop_moo` | `VARCHAR(10)` | NULL | หมู่ที่ของที่ตั้งสถานประกอบการ |
-| 8 | `shop_phone` | `VARCHAR(50)` | NULL | หมายเลขโทรศัพท์ของสถานประกอบการ (โทรศัพท์ 2) |
-| 9 | `business_area` | `VARCHAR(100)` | NULL | ขนาดพื้นที่ประกอบการ (เช่น ตารางเมตร) |
-| 10 | `machine_power` | `VARCHAR(100)` | NULL | ขนาดกำลังเครื่องจักร (เช่น แรงม้า) |
-| 11 | `worker_count` | `VARCHAR(50)` | NULL | จำนวนคนงานในสถานประกอบการ |
-| 12 | `created_at` | `TIMESTAMP` | CURRENT_TIMESTAMP | วันที่บันทึก |
-| 13 | `updated_at` | `TIMESTAMP` | ON UPDATE CURRENT_TIMESTAMP | วันที่ปรับปรุง |
+| ลำดับ | ชื่อฟิลด์ (Field Name) | ประเภทข้อมูล (Type) | Nullable | คีย์ / คุณลักษณะ | คำอธิบายการใช้งาน |
+| :---: | :--- | :--- | :---: | :---: | :--- |
+| 1 | `business_id` | `INT UNSIGNED` | NO | **PK**, AUTO_INCREMENT | รหัสสถานประกอบการ |
+| 2 | `owner_id` | `INT UNSIGNED` | NO | **FK** (Cascade Delete) | รหัสผู้ประกอบการเจ้าของกิจการ |
+| 3 | `category_id` | `INT UNSIGNED` | NO | **FK** (Restrict Delete) | รหัสหมวดหมู่ประเภทกิจการ |
+| 4 | `shop_name` | `VARCHAR(255)` | YES | **INDEX** | ชื่อทางการค้า / ชื่อสถานประกอบการ / ชื่อร้าน |
+| 5 | `operation_type` | `TEXT` | NO | - | รายละเอียดประเภทการประกอบกิจการ (เช่น ซ่อมจักรยานยนต์, ร้านขายของชำ) |
+| 6 | `shop_address` | `VARCHAR(255)` | YES | - | ที่ตั้งสถานประกอบการ (เลขที่) |
+| 7 | `shop_moo` | `VARCHAR(10)` | YES | - | ที่ตั้งสถานประกอบการ (หมู่ที่) |
+| 8 | `shop_phone` | `VARCHAR(50)` | YES | - | หมายเลขโทรศัพท์ของสถานประกอบการ |
+| 9 | `business_area` | `VARCHAR(100)` | YES | - | ขนาดพื้นที่ประกอบกิจการ (ตารางเมตร) |
+| 10 | `machine_power` | `VARCHAR(100)` | YES | - | กำลังเครื่องจักรรวม (แรงม้า / กิโลวัตต์) |
+| 11 | `worker_count` | `VARCHAR(50)` | YES | - | จำนวนคนงาน / ผู้ปฏิบัติงานในร้าน |
+| 12 | `inspection_status` | `VARCHAR(30)` | NO | DEFAULT `'pending'`, **INDEX** | สถานะการออกตรวจ (`'pending'` = รอตรวจ, `'inspected'` = ออกตรวจแล้ว) |
+| 13 | `workflow_status` | `VARCHAR(30)` | NO | DEFAULT `'pending_request'`, **INDEX** | สถานะขั้นตอนของกิจการ: `pending_request`, `pending_inspection`, `pending_print`, `completed` |
+| 14 | `request_date` | `DATE` | YES | - | วันที่ยื่นคำขอรับใบอนุญาต |
+| 15 | `request_no` | `VARCHAR(50)` | YES | - | เลขที่คำขอรับใบอนุญาต (เช่น ๑/๒๕๖๙) |
+| 16 | `created_at` | `TIMESTAMP` | YES | - | วันเวลาที่สร้างข้อมูล |
+| 17 | `updated_at` | `TIMESTAMP` | YES | - | วันเวลาที่ปรับปรุงข้อมูล |
 
 ---
 
-#### ตารางที่ 4: `licenses` (ข้อมูลใบอนุญาตและการชำระเงิน)
-*แยกประวัติการออกใบอนุญาตและใบเสร็จรับเงิน (รองรับการต่ออายุในแต่ละปี)*
+#### ตารางที่ 4: `licenses` (ข้อมูลใบอนุญาตและการเงิน)
+*บันทึกข้อมูลใบอนุญาต ประวัติการชำระเงินค่าธรรมเนียม และสถานะการพิมพ์ใบ อภ.๒*
+- **Primary Key:** `license_id`
+- **Foreign Key:** `business_id` -> `businesses.business_id`
+- **จำนวนฟิลด์:** 12 ฟิลด์
 
-| ลำดับ | ฟิลด์ (Field Name) | ประเภทข้อมูล (Data Type) | คีย์ / ข้อกำหนด | คำอธิบาย |
-| :---: | :--- | :--- | :---: | :--- |
-| 1 | `license_id` | `INT` | **PK**, AUTO_INCREMENT | รหัสรายการใบอนุญาต |
-| 2 | `business_id` | `INT` | **FK** -> `businesses` | รหัสสถานประกอบการที่ได้รับใบอนุญาต |
-| 3 | `fee` | `DECIMAL(10,2)` | DEFAULT 0.00 | ค่าธรรมเนียมใบอนุญาต (บาท) |
-| 4 | `receipt_book` | `VARCHAR(50)` | NULL | เล่มที่ใบเสร็จรับเงิน |
-| 5 | `receipt_no` | `VARCHAR(50)` | NULL | เลขที่ใบเสร็จรับเงิน |
-| 6 | `receipt_date` | `DATE` | NULL | วันที่ออกใบเสร็จ (ลงวันที่) |
-| 7 | `expire_date` | `DATE` | NULL, **INDEX** | วันหมดอายุของใบอนุญาต |
-| 8 | `status` | `ENUM` | DEFAULT 'active' | สถานะใบอนุญาต: `'active'`, `'expired'`, `'renewed'` |
-| 9 | `created_at` | `TIMESTAMP` | CURRENT_TIMESTAMP | วันที่บันทึก |
-| 10 | `updated_at` | `TIMESTAMP` | ON UPDATE CURRENT_TIMESTAMP | วันที่ปรับปรุง |
+| ลำดับ | ชื่อฟิลด์ (Field Name) | ประเภทข้อมูล (Type) | Nullable | คีย์ / คุณลักษณะ | คำอธิบายการใช้งาน |
+| :---: | :--- | :--- | :---: | :---: | :--- |
+| 1 | `license_id` | `INT UNSIGNED` | NO | **PK**, AUTO_INCREMENT | รหัสใบอนุญาต |
+| 2 | `business_id` | `INT UNSIGNED` | NO | **FK** (Cascade Delete) | รหัสสถานประกอบการ |
+| 3 | `fee` | `DECIMAL(10,2)` | NO | DEFAULT `0.00` | อัตราค่าธรรมเนียมใบอนุญาต (บาท) |
+| 4 | `receipt_book` | `VARCHAR(50)` | YES | - | เล่มที่ใบเสร็จรับเงิน |
+| 5 | `receipt_no` | `VARCHAR(50)` | YES | - | เลขที่ใบเสร็จรับเงิน |
+| 6 | `receipt_date` | `DATE` | YES | - | วันที่ออกใบเสร็จรับเงิน |
+| 7 | `expire_date` | `DATE` | YES | **INDEX** | วันหมดอายุของใบอนุญาต (1 ปีนับจากวันตรวจ/ออกใบ) |
+| 8 | `status` | `VARCHAR(20)` | NO | DEFAULT `'active'`, **INDEX** | สถานะใบอนุญาต: `'active'` (ใช้งาน), `'expired'` (หมดอายุ), `'renewed'` (ต่ออายุแล้ว) |
+| 9 | `is_printed` | `BOOLEAN` | NO | DEFAULT `0`, **INDEX** | สถานะการพิมพ์ใบ อภ.๒ (`1` = พิมพ์แล้ว, `0` = ยังไม่พิมพ์) |
+| 10 | `printed_at` | `TIMESTAMP` | YES | - | วันเวลาที่สั่งพิมพ์ใบอนุญาต อภ.๒ สำเร็จ |
+| 11 | `created_at` | `TIMESTAMP` | YES | - | วันเวลาที่ออกใบอนุญาต |
+| 12 | `updated_at` | `TIMESTAMP` | YES | - | วันเวลาที่มีการแก้ไขข้อมูล |
 
 ---
 
 #### ตารางที่ 5: `inspection_rounds` (รอบการออกตรวจสุขลักษณะ)
-*กำหนดวาระหรือช่วงเวลาการลงพื้นที่ตรวจสถานประกอบการ*
+*บันทึกวาระและรอบช่วงเวลาการลงพื้นที่ตรวจสถานประกอบการของเจ้าหน้าที่*
+- **Primary Key:** `round_id`
+- **จำนวนฟิลด์:** 5 ฟิลด์
 
-| ลำดับ | ฟิลด์ (Field Name) | ประเภทข้อมูล (Data Type) | คีย์ / ข้อกำหนด | คำอธิบาย |
-| :---: | :--- | :--- | :---: | :--- |
-| 1 | `round_id` | `INT` | **PK**, AUTO_INCREMENT | รหัสรอบการตรวจ |
-| 2 | `round_name` | `VARCHAR(100)` | **UNIQUE**, NOT NULL | ชื่อรอบการออกตรวจ เช่น "ออกตรวจ 15.6.68" |
-| 3 | `inspection_date` | `DATE` | NOT NULL, **INDEX** | วันที่ออกตรวจจริงตามรอบ |
-| 4 | `created_at` | `TIMESTAMP` | CURRENT_TIMESTAMP | วันที่สร้างรอบตรวจ |
+| ลำดับ | ชื่อฟิลด์ (Field Name) | ประเภทข้อมูล (Type) | Nullable | คีย์ / คุณลักษณะ | คำอธิบายการใช้งาน |
+| :---: | :--- | :--- | :---: | :---: | :--- |
+| 1 | `round_id` | `INT UNSIGNED` | NO | **PK**, AUTO_INCREMENT | รหัสรอบการตรวจ |
+| 2 | `round_name` | `VARCHAR(100)` | NO | **UNIQUE** | ชื่อรอบการออกตรวจ เช่น "รอบที่ 1/2569", "ออกตรวจประจำเดือน พ.ย. 68" |
+| 3 | `inspection_date` | `DATE` | NO | **INDEX** | วันที่กำหนดจัดกิจกรรมออกตรวจ |
+| 4 | `created_at` | `TIMESTAMP` | YES | - | วันเวลาที่สร้างรอบการตรวจ |
+| 5 | `updated_at` | `TIMESTAMP` | YES | - | วันเวลาที่แก้ไขข้อมูลรอบตรวจ |
 
 ---
 
 #### ตารางที่ 6: `inspection_records` (บันทึกผลการออกตรวจรายสถานประกอบการ)
-*Bridge Table เชื่อมโยงรอบการตรวจและสถานประกอบการ พร้อมเงื่อนไขและไฟล์แนบ*
+*Bridge Table เชื่อมโยงรอบตรวจและสถานประกอบการ จัดเก็บเงื่อนไขท้ายใบอนุญาต และลิงก์รูปภาพ*
+- **Primary Key:** `record_id`
+- **Foreign Keys:** `round_id` -> `inspection_rounds.round_id`, `business_id` -> `businesses.business_id`
+- **Unique Constraint:** `(round_id, business_id)` ป้องกันการลงผลตรวจซ้ำในรอบเดียวกัน
+- **จำนวนฟิลด์:** 9 ฟิลด์
 
-| ลำดับ | ฟิลด์ (Field Name) | ประเภทข้อมูล (Data Type) | คีย์ / ข้อกำหนด | คำอธิบาย |
-| :---: | :--- | :--- | :---: | :--- |
-| 1 | `record_id` | `INT` | **PK**, AUTO_INCREMENT | รหัสบันทึกผลการตรวจ |
-| 2 | `round_id` | `INT` | **FK** -> `inspection_rounds` | รหัสรอบการตรวจที่เกี่ยวข้อง |
-| 3 | `business_id` | `INT` | **FK** -> `businesses` | รหัสสถานประกอบการที่ถูกตรวจ |
-| 4 | `condition_4_3` | `TEXT` | NULL | เงื่อนไขเพิ่มเติมข้อ 4.3 ตามใบอนุญาต |
-| 5 | `condition_4_4` | `TEXT` | NULL | เงื่อนไขเพิ่มเติมข้อ 4.4 ตามใบอนุญาต |
-| 6 | `file_url` | `TEXT` | NULL | URL ลิงก์ไฟล์สแกนหลักฐาน / ภาพถ่ายบน Google Drive |
-| 7 | `notes` | `TEXT` | NULL | หมายเหตุเพิ่มเติมและชื่อเจ้าหน้าที่ผู้ออกตรวจ |
-| 8 | `created_at` | `TIMESTAMP` | CURRENT_TIMESTAMP | วันที่บันทึกผลตรวจ |
-| *Constraint* | `uq_round_business` | **UNIQUE** (`round_id`, `business_id`) | | ป้องกันการบันทึกตรวจร้านซ้ำในรอบเดียวกัน |
-
----
-
-### 3.2 ฐานข้อมูลผู้ใช้งานใน Google Firebase Firestore
-
-คอลเลกชัน **`users`** (Document ID คือ `username` เช่น อีเมลของเจ้าหน้าที่)
-
-| ชื่อฟิลด์ (Field Name) | ประเภท (Type) | คำอธิบาย |
-| :--- | :---: | :--- |
-| `username` | String | ชื่อบัญชีผู้ใช้งาน / อีเมล |
-| `password` | String | รหัสผ่านที่เข้ารหัสด้วย bcrypt Hash |
-| `name` | String | ชื่อ-นามสกุลจริงของเจ้าหน้าที่ |
-| `position` | String | ตำแหน่งงาน เช่น "นักวิชาการสาธารณสุขปฏิบัติการ" |
-| `role` | String | ระดับสิทธิ์: `'admin'` (ผู้ดูแลระบบ), `'staff'` (เจ้าหน้าที่) |
-| `status` | String | สถานะการใช้งาน: `'approved'` (อนุมัติแล้ว), `'pending'` (รออนุมัติ), `'revoked'` (ระงับสิทธิ์) |
+| ลำดับ | ชื่อฟิลด์ (Field Name) | ประเภทข้อมูล (Type) | Nullable | คีย์ / คุณลักษณะ | คำอธิบายการใช้งาน |
+| :---: | :--- | :--- | :---: | :---: | :--- |
+| 1 | `record_id` | `INT UNSIGNED` | NO | **PK**, AUTO_INCREMENT | รหัสบันทึกผลการตรวจ |
+| 2 | `round_id` | `INT UNSIGNED` | NO | **FK** (Cascade Delete) | รหัสรอบการตรวจที่เกี่ยวข้อง |
+| 3 | `business_id` | `INT UNSIGNED` | NO | **FK** (Cascade Delete) | รหัสสถานประกอบการที่ได้รับการตรวจ |
+| 4 | `condition_4_3` | `TEXT` | YES | - | เงื่อนไขเพิ่มเติมข้อ 4.3 ตามที่เจ้าหน้าที่สาธารณสุขกำหนด |
+| 5 | `condition_4_4` | `TEXT` | YES | - | เงื่อนไขเพิ่มเติมข้อ 4.4 ตามที่เจ้าหน้าที่สาธารณสุขกำหนด |
+| 6 | `file_url` | `TEXT` | YES | - | ลิงก์ URL ไฟล์รูปถ่ายหน้างาน หรือเอกสารสแกนบน Cloud/Google Drive |
+| 7 | `notes` | `TEXT` | YES | - | หมายเหตุผลการตรวจ และรายชื่อเจ้าหน้าที่ผู้ร่วมตรวจ |
+| 8 | `created_at` | `TIMESTAMP` | YES | - | วันเวลาที่บันทึกผลตรวจ |
+| 9 | `updated_at` | `TIMESTAMP` | YES | - | วันเวลาที่แก้ไขผลตรวจ |
 
 ---
 
-## 4. รายละเอียดฟังก์ชันการทำงานทั้งหมดของระบบ (Feature Breakdown)
+### 3.4 รายละเอียดตารางความปลอดภัยและผู้ใช้งาน (Auth & System Tables)
 
-### 4.1 ระบบยืนยันตัวตนและความปลอดภัย (Authentication & User Control)
-- **ระบบเข้าสู่ระบบแบบแยกบทบาท (RBAC):** แยกระหว่างแอดมิน (Admin) และเจ้าหน้าที่ทั่วไป (Staff)
-- **ระบบลงทะเบียนเจ้าหน้าที่ใหม่:** กรอกชื่อผู้ใช้ รหัสผ่าน ชื่อ-สกุล และตำแหน่ง โดยบัญชีจะอยู่ในสถานะ `pending` อัตโนมัติ
-- **ระบบแผงควบคุมผู้ดูแลระบบ (Admin Dashboard):**
-  - ตรวจสอบคำขอลงทะเบียนใหม่ พร้อมปุ่มอนุมัติ (`approved`) หรือปฏิเสธคำขอ (`delete`)
-  - รายชื่อเจ้าหน้าที่ที่ได้รับอนุมัติแล้ว พร้อมฟังก์ชันเปลี่ยนรหัสผ่านใหม่
-  - ฟังก์ชันระงับสิทธิ์เจ้าหน้าที่ (`revoked`) ได้ทันที
+#### ตารางที่ 7: `users` (ข้อมูลผู้ใช้งานและระดับสิทธิ์)
+*จัดเก็บข้อมูลบัญชีผู้ใช้งาน สิทธิ์การเข้าถึง และสถานะการอนุมัติการใช้งาน*
+- **Primary Key:** `id`
+- **จำนวนฟิลด์:** 12 ฟิลด์
 
-### 4.2 ระบบแดชบอร์ดสถิติและการติดตาม (Dashboard & Analytics)
-- **Metric Cards สรุปผล Real-time:** แสดงจำนวนกิจการทั้งหมด, กิจการที่หมดอายุแล้ว, และกิจการที่ใกล้หมดอายุ (ภายใน 90 วัน)
-- **ตัวกรองชีตเป้าหมาย (Target Sheet Selector):** เลือกดูข้อมูลตามรอบการออกตรวจ หรือดูภาพรวมทั้งตำบล ("รวมกิจการ")
-- **ตัวกรองประเภทกิจการ (Global Category Filter):** กรองดูเฉพาะกลุ่ม "สถานประกอบกิจการ", "จำหน่าย/สะสมอาหาร" หรือ "ตลาด"
-- **ดาวน์โหลดแบบตรวจราชการ:** ปุ่มดาวน์โหลดแบบฟอร์มตรวจประเมินสุขลักษณะภายนอก (PDF)
+| ลำดับ | ชื่อฟิลด์ (Field Name) | ประเภทข้อมูล (Type) | Nullable | คีย์ / คุณลักษณะ | คำอธิบายการใช้งาน |
+| :---: | :--- | :--- | :---: | :---: | :--- |
+| 1 | `id` | `BIGINT UNSIGNED` | NO | **PK**, AUTO_INCREMENT | รหัสผู้ใช้งาน |
+| 2 | `username` | `VARCHAR(255)` | NO | **UNIQUE** | ชื่อผู้ใช้สำหรับลงชื่อเข้าใช้ระบบ (Login) |
+| 3 | `name` | `VARCHAR(255)` | NO | - | ชื่อ - นามสกุลจริงของเจ้าหน้าที่ |
+| 4 | `email` | `VARCHAR(255)` | YES | **UNIQUE** | อีเมลของเจ้าหน้าที่ (ไม่บังคับ) |
+| 5 | `position` | `VARCHAR(255)` | YES | - | ตำแหน่งงาน เช่น "นักวิชาการสาธารณสุขปฏิบัติการ" |
+| 6 | `role` | `ENUM('admin', 'staff')` | NO | DEFAULT `'staff'` | ระดับสิทธิ์: `admin` (ผู้ดูแลระบบ), `staff` (เจ้าหน้าที่) |
+| 7 | `status` | `ENUM('approved', 'pending', 'revoked')` | NO | DEFAULT `'pending'` | สถานะ: `approved` (ใช้งานได้), `pending` (รออนุมัติ), `revoked` (ระงับสิทธิ์) |
+| 8 | `email_verified_at` | `TIMESTAMP` | YES | - | วันเวลายืนยันอีเมล |
+| 9 | `password` | `VARCHAR(255)` | NO | - | รหัสผ่านที่ผ่านการแฮชด้วย Bcrypt |
+| 10 | `remember_token` | `VARCHAR(100)` | YES | - | โทเค็นสำหรับการจดจำการเข้าสู่ระบบ (Remember Me) |
+| 11 | `created_at` | `TIMESTAMP` | YES | - | วันเวลาที่ลงทะเบียนผู้ใช้ |
+| 12 | `updated_at` | `TIMESTAMP` | YES | - | วันเวลาที่แก้ไขข้อมูลผู้ใช้ |
 
-### 4.3 ระบบสืบค้นอัจฉริยะ (Smart Search & Directory)
-- **ค้นหาหลายมิติ (Multi-field Search):** พิมพ์ค้นหาได้จากชื่อ-สกุล, เลขประจำตัวประชาชน 13 หลัก, ชื่อร้าน หรือที่อยู่
-- **⚡ เสียบบัตรประชาชนค้นหา (Smart Card Instant Search):** เสียบบัตรประชาชนของผู้มาติดต่อเข้าเครื่องอ่าน USB แล้วกดค้นหา ระบบจะดึงเลข 13 หลักมาสืบค้นประวัติกิจการทั้งหมดทันทีใน 1 วินาที
-- **การ์ดข้อมูลผู้ประกอบการ (Grouped Cards):** แสดงสรุปข้อมูลผู้ประกอบการ 1 ราย พร้อมรายการสถานประกอบการและใบอนุญาตทั้งหมดที่ถือครอง
-- **ป้ายลิงก์ไฟล์แนบ (Direct Attachment Badge):** แสดงปุ่ม `📎 ดูไฟล์แนบ` บนการ์ด เพื่อคลิกเปิดดูภาพถ่ายหรือเอกสารสแกนบน Google Drive ได้ทันที
+---
 
-### 4.4 ระบบลงทะเบียนกิจการรายใหม่ (New Business Registration)
-- **⚡ อ่านบัตรประชาชนกรอกฟอร์มอัตโนมัติ:** เสียบบัตรประชาชนแล้วกดปุ่ม ระบบจะดึง:
+#### ตารางที่ 8: `password_reset_tokens` (โทเค็นรีเซ็ตรหัสผ่าน)
+- **Primary Key:** `email`
+- **จำนวนฟิลด์:** 3 ฟิลด์ (`email`, `token`, `created_at`)
+
+#### ตารางที่ 9: `sessions` (Active HTTP Sessions)
+- **Primary Key:** `id`
+- **จำนวนฟิลด์:** 6 ฟิลด์ (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`)
+
+---
+
+### 3.5 รายละเอียดตารางสนับสนุนของ Framework (5 ตาราง)
+- `cache` (3 ฟิลด์), `cache_locks` (3 ฟิลด์): ระบบแคชประสิทธิภาพสูง
+- `jobs` (7 ฟิลด์), `job_batches` (10 ฟิลด์), `failed_jobs` (7 ฟิลด์): ระบบประมวลผลงานแบบ異步 (Asynchronous Background Queue)
+
+---
+
+## 4. วงจรการทำงานของระบบ (4-Stage Workflow Lifecycle)
+
+ระบบ ESFD ควบคุมวงจรชีวิตของสถานประกอบการด้วย **4-Stage Finite State Machine** อย่างเคร่งครัด เพื่อป้องกันการลัดขั้นตอนทางระเบียบราชการ:
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending_request : 1. ลงทะเบียนกิจการใหม่ (ยังไม่มีใบอนุญาต)
+    
+    pending_request --> pending_inspection : 2. เจ้าหน้าที่กด "ออกใบคำขอ" (สร้างเลขที่/วันที่คำขอ + พิมพ์แบบคำขอ)
+    
+    pending_inspection --> pending_print : 3. เจ้าหน้าที่ออกตรวจสุขลักษณะผ่านเกณฑ์ (บันทึกผลตรวจ + ออกใบอนุญาตอายุ 1 ปี)
+    
+    pending_print --> completed : 4. เจ้าหน้าที่พิมพ์ใบ อภ.๒ ตัวจริงสำเร็จ (บันทึก is_printed = 1)
+    
+    completed --> pending_inspection : 5. ต่ออายุประจำปี (เข้าสู่รอบตรวจปีถัดไป)
+```
+
+### รายละเอียดแต่ละขั้นตอน:
+1. **`pending_request` (รอยื่นคำขอ):** สถานะเมื่อลงทะเบียนกิจการใหม่ ข้อมูลผู้ประกอบการและที่ตั้งร้านค้าจะถูกบันทึกเข้าระบบ แต่ยังไม่มีประวัติใบอนุญาตและการเงิน
+2. **`pending_inspection` (รอออกตรวจ):** เกิดขึ้นเมื่อเจ้าหน้าที่กดปุ่ม **"กดออกใบคำขอ"** ในหน้าแสดงข้อมูลร้าน ระบบจะสร้าง `request_no` และ `request_date` อัตโนมัติ พร้อมส่งผู้ใช้ไปยังหน้าพรีวิวเพื่อพิมพ์ **"แบบคำขอรับใบอนุญาต อบต.ดอยงาม"**
+3. **`pending_print` (รอพิมพ์ใบอนุญาต):** เมื่อทีมเจ้าหน้าที่ลงพื้นที่ตรวจประเมินสุขลักษณะและบันทึกผลตรวจผ่านระบบ พร้อมระบุเลขที่ใบเสร็จ ค่าธรรมเนียม ระบบจะสร้างเรคคอร์ดในตาราง `licenses` มีอายุ 1 ปี และย้ายสถานะเป็นรอพิมพ์ใบ อภ.๒
+4. **`completed` (เสร็จสมบูรณ์):** เจ้าหน้าที่สั่งพิมพ์ใบ อภ.๒ ทางการ ระบบจะอัปเดต `is_printed = true`, บันทึกเวลา `printed_at` และเปลี่ยนสถานะเป็น Completed พร้อมแสดงสถานะสมบูรณ์ในหน้าทะเบียน
+
+---
+
+## 5. รายละเอียดฟีเจอร์ทั้งหมดของระบบ (Complete Feature Breakdown)
+
+### 5.1 ระบบยืนยันตัวตนและการจัดการสิทธิ์ (Authentication & RBAC)
+- **หน้า Login แบบราชการ:** ดีไซน์เรียบหรู ฟอนต์ Noto Sans Thai และสารบรรณ พร้อมระบบตรวจสอบชื่อผู้ใช้และรหัสผ่าน
+- **Role-Based Access Control (RBAC):**
+  - `admin` (ผู้ดูแลระบบ): สามารถเข้าถึงเมนูผู้ดูแลระบบ จัดการผู้ใช้ อนุมัติสิทธิ์ รีเซ็ตรหัสผ่าน และลบข้อมูลได้
+  - `staff` (เจ้าหน้าที่สาธารณสุข): เข้าถึงระบบทะเบียน ค้นหา บันทึกผลตรวจ และพิมพ์เอกสาร
+- **ระบบสถานะบัญชี (Account Approval Workflow):** บัญชีที่ลงทะเบียนใหม่จะอยู่ในสถานะ `pending` จนกว่าแอดมินจะกดยืนยันอนุมัติ (`approved`) จึงจะสามารถเข้าสู่ระบบได้
+
+### 5.2 ระบบจัดการผู้ใช้งานสำหรับแอดมิน (Admin User Management)
+- **Path:** `/admin/users`
+- **Dashboard สรุปจำนวนผู้ใช้:** แสดงการแบ่งหมวดหมู่ผู้ใช้ (อนุมัติแล้ว, รออนุมัติ, ระงับสิทธิ์)
+- **ฟังก์ชันการอนุมัติ/ระงับ:** ปุ่ม Approve/Revoke บัญชีแบบคลิกเดียว
+- **ระบบ Reset Password:** แอดมินสามารถกำหนดรหัสผ่านใหม่ให้กับเจ้าหน้าที่ได้ทันที
+
+### 5.3 ระบบเชื่อมต่อเครื่องอ่านบัตรประชาชน (Smart Card Reader)
+- **อ่านบัตรประชาชนจริงผ่าน USB:** เสียบบัตรประชาชนไทยเข้ากับเครื่องอ่านแบบ PC/SC (เช่น ACR39U, Taisys) ระบบจะสื่อสารผ่าน APDU คำสั่งตรงไปยังชิปการ์ด
+- **ดึงข้อมูลอัตโนมัติครบถ้วน:**
   - เลขประจำตัวประชาชน 13 หลัก
-  - ชื่อ - สกุล
-  - บ้านเลขที่, หมู่ที่, ตำบล, อำเภอ, จังหวัด  
-  ลงในฟอร์มทันที ขจัดปัญหาพิมพ์ผิดและลดเวลาทำงาน
-- **Dropdown ประเภทกิจการ:** เลือกจาก 3 หมวดหมู่มาตรฐาน ("สถานประกอบกิจการ", "จำหน่าย/สะสมอาหาร", "ตลาด")
-- **คำนวณลำดับถัดไปอัตโนมัติ:** ดึง `MAX(business_id) + 1` จากฐานข้อมูล MySQL ป้องกันการซ้ำซ้อน
+  - ชื่อ - นามสกุล (ภาษาไทย) แยกคำนำหน้า
+  - วันเกิด และอายุ
+  - ที่อยู่ตามทะเบียนบ้าน (บ้านเลขที่, หมู่ที่, ตำบล, อำเภอ, จังหวัด)
+- **Smart Card Mock Data:** ระบบมีระบบจำลองข้อมูลบัตร (Mock) สำหรับทดสอบระบบในเครื่องที่ไม่ได้เสียบตัวอ่านบัตร
 
-### 4.5 ระบบบริหารรอบการออกตรวจและบันทึกผลหน้างาน (Inspection Workflow)
-- **สร้างรอบการออกตรวจใหม่ (Create Inspection Round):** กำหนดชื่อรอบตรวจ เช่น "ออกตรวจ 15.6.68" บันทึกเป็นวาระใน SQL
-- **ฟังก์ชัน "✅ ออกตรวจแล้ว":** ในหน้ารายชื่อหมดอายุ เมื่อเจ้าหน้าที่ลงพื้นที่ตรวจแล้ว สามารถกดปุ่มนี้เพื่อเปิดฟอร์มบันทึก:
+### 5.4 ระบบสืบค้นอัจฉริยะและทำเนียบผู้ประกอบการ (Smart Search & Directory)
+- **Path:** `/search`
+- **Multi-criteria Filtering:** ค้นหาพร้อมกันได้จาก:
+  - คำค้นหา (Search Query): ชื่อร้าน, ชื่อเจ้าของ, เลขบัตร 13 หลัก, เลขนิติบุคคล, เบอร์โทร
+  - หมู่ที่ (Moo Filter): เลือกกรองเฉพาะหมู่บ้าน 1-18 ตำบลดอยงาม
+  - หมวดหมู่ (Category Filter): สถานประกอบการ, จำหน่าย/สะสมอาหาร, ตลาด
+  - สถานะการตรวจ (Inspection Status): ทั้งหมด, รอตรวจ, ตรวจแล้ว
+- **One-Click Smart Card Search:** กดปุ่ม "อ่านบัตรค้นหา" เสียบบัตรประชาชนของผู้มาติดต่อ ระบบจะดึงเลข 13 หลักมาค้นหากิจการทั้งหมดที่เป็นของบุคคลนั้นทันที
+
+### 5.5 ระบบลงทะเบียนสถานประกอบการใหม่ (Business Registration)
+- **Path:** `/businesses/create`
+- **Smart Card Auto-Fill:** เสียบบัตรประชาชนแล้วกดปุ่มเดียว ข้อมูลชื่อ-นามสกุล ที่อยู่ จะถูกกรอกลงในฟอร์มอัตโนมัติ
+- **Local Storage Auto-Save Draft:** มีระบบบันทึกแบบร่างลง Local Storage ของเบราว์เซอร์อัตโนมัติ ป้องกันข้อมูลสูญหายกรณีเน็ตหลุดหรือปิดหน้าต่างกะทันหัน
+- **ตรวจสอบการมีอยู่ของผู้ประกอบการ:** หากเป็นเจ้าของเดิม ระบบจะผูกกิจการใหม่เข้ากับ `owner_id` เดิมทันทีโดยไม่สร้างบุคคลซ้ำ
+
+### 5.6 ระบบบันทึกผลการออกตรวจสุขลักษณะ (Inspection Workflow)
+- **Path:** `/inspections`
+- **ระบบสร้างรอบการตรวจ (Inspection Rounds):** สามารถเพิ่มรอบการตรวจประจำปีหรือประจำเดือน เช่น "รอบที่ 1/2569"
+- **Inspection Record Modal:** โมดอลบันทึกผลตรวจหน้างาน:
   - เลือกรอบการตรวจ
-  - บันทึกเงื่อนไขพิเศษ 4.3 และ 4.4
-  - กำหนดค่าธรรมเนียม เล่มที่/เลขที่ใบเสร็จ
-  - คำนวณวันหมดอายุใหม่ล่วงหน้า 1 ปีให้อัตโนมัติ
-  - ระบุชื่อผู้ออกตรวจและหมายเหตุ
-- **ส่งต่องานอย่างไร้รอยต่อ (Collaborative Workflow):** เมื่อบันทึกสถานะออกตรวจแล้ว สถานะจะเปลี่ยนเป็น `✅ ออกตรวจแล้ว (รอพิมพ์)` พร้อมปุ่ม `🖨️ พิมพ์ใบ` ให้เจ้าหน้าที่ฝ่ายสำนักงานเข้ามากดพิมพ์เอกสารต่อได้ทันที
-- **อัปโหลดไฟล์หลักฐานขึ้นคลาวด์:** อัปโหลดไฟล์สแกน/ภาพถ่ายผ่าน Google Apps Script ไปยังโฟลเดอร์ Google Drive พร้อมเก็บ URL สะสมลงตาราง `inspection_records` โดยไม่ลบไฟล์เดิม
+  - บันทึกเงื่อนไขเพิ่มเติมข้อ 4.3 และ 4.4
+  - บันทึกข้อมูลใบเสร็จรับเงิน (เล่มที่, เลขที่, วันที่, จำนวนเงิน)
+  - แนบลิงก์ไฟล์รูปภาพการตรวจหน้างาน (Google Drive / Cloud)
+  - คำนวณวันหมดอายุใบอนุญาตอัตโนมัติ (1 ปีนับจากวันตรวจ)
 
-### 4.6 ระบบสร้างเอกสารราชการอัตโนมัติ (Automated Document Generation)
-- **ใบอนุญาตประกอบกิจการ (แบบ อภ.๒):**
-  - สร้างไฟล์ **PDF** จัดหน้าและฟอนต์มาตรฐานราชการไทย (`TH Sarabun New`) แม่นยำทุกพิกัด
-  - สร้างไฟล์ **Microsoft Word (.docx)** กรณีมีเงื่อนไขเพิ่มเติมข้อ 4.3/4.4 เพื่อให้เจ้าหน้าที่ปรับแต่งข้อความก่อนพิมพ์
-- **แบบคำขอรับใบอนุญาต (สธ.๒):** สร้างเอกสารคำขอทั้งรูปแบบ PDF และ Word อัตโนมัติ
-- **ระบบพิมพ์รวมและบีบอัดไฟล์ (Batch Print ZIP):** สั่งสร้างใบอนุญาตทุกใบของผู้ประกอบการรายนั้น และดาวน์โหลดรวมเป็นไฟล์ `.zip` ได้ในคลิกเดียว
+### 5.7 ระบบติดตามใบอนุญาตและแจ้งเตือนวันหมดอายุ (Expiration Tracking)
+- **Path:** `/expirations`
+- **ระบบแบ่งแท็บ 3 ระดับความเร่งด่วน:**
+  - 🛑 **หมดอายุแล้ว (Expired):** ใบอนุญาตที่หมดอายุแล้ว ต้องเร่งรัดติดตาม
+  - ⏳ **ใกล้หมดอายุ (Expiring):** ใบอนุญาตที่จะหมดอายุภายใน 90 วัน
+  - 🟢 **ยังไม่หมดอายุ (Active):** ใบอนุญาตที่ยังคงมีอายุเกิน 90 วันขึ้นไป
+- **Export รายงาน Excel (.xlsx):** ส่งออกรายชื่อผู้ประกอบการที่ใบอนุญาตหมดอายุหรือใกล้หมดอายุ พร้อมเบอร์โทรและที่อยู่ เพื่อใช้ออกหนังสือเตือน
 
-### 4.7 ระบบติดตามวันหมดอายุและการแจ้งเตือน (Expiration Alert System)
-- **แยกหมวดหมู่ชัดเจน:** แสดงรายชื่อที่ "🛑 หมดอายุแล้ว" และ "⏳ ใกล้หมดอายุ (ภายใน 90 วัน)"
-- **ส่งออกไฟล์แจ้งเตือน (Excel Export):** ส่งออกรายชื่อผู้ประกอบการที่ต้องต่ออายุ พร้อมที่อยู่และเบอร์โทรศัพท์ เป็นไฟล์ `.xlsx` เพื่อทำหนังสือแจ้งเตือน
+### 5.8 ระบบจัดการคิวรอพิมพ์ใบอนุญาต (Pending Print Queue)
+- **Path:** `/pending-print`
+- รวมรายการสถานประกอบการที่ผ่านการตรวจสุขลักษณะแล้วและมีใบอนุญาต แต่ยังไม่ได้พิมพ์ใบ อภ.๒ ตัวจริง เพื่อให้เจ้าหน้าที่ฝ่ายเอกสารสามารถกดพิมพ์ต่อเนื่องได้สะดวกรวดเร็ว
+
+### 5.9 แดชบอร์ดสรุปผลและสถิติสารสนเทศผู้บริหาร (Dashboard & MIS Analytics)
+- **Path:** `/` หรือ `/dashboard`
+- **Metric Summary Cards:** กิจการทั้งหมด, ใบอนุญาตที่ใช้งานได้, กิจการที่ใกล้หมดอายุ, กิจการที่หมดอายุแล้ว
+- **Interactive Recharts:**
+  - Donut Chart แสดงสัดส่วนสถานะใบอนุญาต
+  - Bar Chart แสดงจำนวนกิจการแยกตามหมู่บ้าน (หมู่ 1 - หมู่ 18)
+  - Bar Chart แสดงจำนวนกิจการแยกตามหมวดหมู่
 
 ---
 
-## 5. การตั้งค่าระบบและการเชื่อมต่อ (Configuration & Secrets)
+## 6. ระบบพิมพ์เอกสารราชการและเทคนิค PDF Overlay
 
-ไฟล์กำหนดค่า [`.streamlit/secrets.toml`](file:///d:/Doingam/DoiNgamApp/.streamlit/secrets.toml) ประกอบด้วย 2 ส่วนหลัก:
+เพื่อให้เอกสารราชการคงความถูกต้องตามระเบียบสารบรรณ และป้องกันปัญหาตัวอักษรภาษาไทยลอย สระเพี้ยน หรือฟอร์มกระดาษเคลื่อน ระบบได้เลือกใช้แนวทาง **PDF Coordinate Overlay** ลงบนไฟล์เทมเพลตมาตรฐานต้นฉบับ:
 
-```toml
-# 1. การเชื่อมต่อ Firebase Firestore (Service Account)
-type = "service_account"
-project_id = "doingamapp"
-private_key_id = "..."
-private_key = "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-client_email = "firebase-adminsdk-fbsvc@doingamapp.iam.gserviceaccount.com"
-client_id = "..."
-admin_password = "admin"
+```
+[app_template.pdf (ต้นฉบับแบบฟอร์มสแกนคมชัด)]
+                    +
+[ReportLab Canvas (วาดเฉพาะข้อความด้วยฟอนต์ TH Sarabun New พิกัดแม่นยำ)]
+                    =
+[Output PDF (เอกสารราชการที่สมบูรณ์แบบ 100%)]
+```
 
-# 2. การเชื่อมต่อฐานข้อมูล MySQL
-[mysql]
-host = "localhost"
-port = 3306
-user = "root"
-password = "..."
-database = "doingam_db"
+### 6.1 เอกสารที่รองรับ:
+1. **แบบคำขอรับใบอนุญาต/ต่อใบอนุญาต อบต.ดอยงาม:** 
+   - เรนเดอร์ข้อความทับ `app_template.pdf` โดยใช้สคริปต์ `scripts/generate_app_pdf.py`
+   - พิกัดกระดาษ 612 × 792 pt (Letter / Standard Thai Form)
+   - ฟอนต์ราชการ: `THSarabunNew.ttf`
+   - ระบบ Interactive Preview ในหน้าเว็บ: เจ้าหน้าที่สามารถแก้ไขข้อความ ติ๊กเลือกช่องเอกสารแนบ (chk_1 ถึง chk_7) และกรอกชื่อผู้มีอำนาจลงนามแทนนิติบุคคลได้โดยตรงก่อนพิมพ์
+2. **ใบอนุญาตประกอบกิจการที่เป็นอันตรายต่อสุขภาพ (แบบ อภ.๒):**
+   - เรนเดอร์ผ่าน Dompdf พร้อมตัวเลือกดาวน์โหลดเป็นไฟล์ **Microsoft Word (.docx)** เพื่อแก้ไขเงื่อนไข 4.3/4.4
+3. **แบบรับคำขอ (สธ.๒):**
+   - เรนเดอร์เอกสารรับรองการยื่นคำขอในรูปแบบ PDF
+
+### 6.2 ตารางพิกัดตำแหน่งตัวอักษรสำคัญบน `app_template.pdf`:
+| รายการข้อมูล | พิกัด X (pt) | พิกัด Y (pt) | รูปแบบข้อมูลที่พิมพ์ |
+| :--- | :---: | :---: | :--- |
+| ประเภทกิจการและชื่อร้าน | 260.0 | 654.2 | "ร้านสะดวกซื้อ (จำหน่ายสินค้าทั่วไป)" |
+| สถานที่เขียนคำขอ | 360.0 | 626.6 | "อบต.ดอยงาม" |
+| วันที่ยื่นคำขอ | 355.0 | 598.9 | เลขไทย เช่น "๑๓" |
+| เดือนที่ยื่นคำขอ | 415.0 | 598.9 | เช่น "พฤศจิกายน" |
+| ปี พ.ศ. | 505.0 | 598.9 | เลขไทย เช่น "๒๕๖๙" |
+| ชื่อผู้ขอรับใบอนุญาต | 150.0 | 571.3 | เช่น "นาย สุขใจ บุญสูง" |
+| อายุ | 355.0 | 571.3 | เช่น "๔๕" |
+| สัญชาติ | 430.0 | 571.3 | "ไทย" |
+| ผู้มีอำนาจลงนามแทนนิติบุคคล | 100.0 | 541.4 | ชื่อตัวแทนนิติบุคคล (กรณีติ๊กนิติบุคคล) |
+| ที่อยู่ (เลขที่, หมู่, ซอย, ถนน) | 205.0 / 275.0 / 350.0 / 430.0 | 515.9 | ข้อมูลที่อยู่ผู้ประกอบการ |
+| ตำบล, อำเภอ, จังหวัด | 130.0 / 280.0 / 360.0 | 488.3 | "ดอยงาม", "พาน", "เชียงราย" |
+| หมายเลขโทรศัพท์ | 150.0 | 460.6 | เบอร์โทรศัพท์ติดต่อ |
+| ลายมือชื่อผู้ขอรับใบอนุญาต | 255.0 | 98.9 | ชื่อ-นามสกุลสำหรับลงนาม |
+
+---
+
+## 7. ระบบอ่านบัตรประจำตัวประชาชน (Thai Smart Card Integration)
+
+ระบบเชื่อมต่อกับชิปการ์ดตามมาตรฐาน **ISO 7816** ผ่านคำสั่ง **APDU (Application Protocol Data Unit)** โดยเขียนคำสั่งผ่านไลบรารี `pyscard` ในไฟล์ `scripts/read_card.py`:
+
+```mermaid
+sequenceDiagram
+    participant Web as React Frontend
+    participant PHP as Laravel Backend
+    participant Py as Python Worker (read_card.py)
+    participant Reader as USB Smart Card Reader
+    participant Card as Thai National ID Card
+
+    Web->>PHP: GET /api/smartcard/read
+    PHP->>Py: Process Execution (python read_card.py)
+    Py->>Reader: Connect Reader (PC/SC SCardConnect)
+    Reader->>Card: Select Thai ID Applet (APDU: 00 A4 04 00 08 ...)
+    Card-->>Reader: 90 00 (Success)
+    Reader->>Card: Read CID 13 digits (APDU: 80 B0 00 04 02 00 0D)
+    Card-->>Reader: Citizen ID Raw Bytes
+    Reader->>Card: Read Full Name Thai (APDU)
+    Card-->>Reader: Name Bytes (TIS-620)
+    Reader->>Card: Read Address (APDU)
+    Card-->>Reader: Address Bytes (TIS-620)
+    Py->>Py: Decode TIS-620 to UTF-8 & Parse JSON
+    Py-->>PHP: Standard JSON Response
+    PHP-->>Web: Return JSON to Frontend
+    Web->>Web: Auto-fill Form Inputs
 ```
 
 ---
 
-## 6. สรุปภาพรวมและข้อดีของระบบ (Summary of Benefits)
+## 8. การไหลของข้อมูลภาพรวม (End-to-End Data Flow Architecture)
 
-1. **ลดภาระงานและเวลา:** การใช้เครื่องอ่านบัตรประชาชนและการพิมพ์เอกสารอัตโนมัติ ช่วยลดเวลาออกใบอนุญาตจากเดิมฉบับละ 15–20 นาที เหลือไม่เกิน 1–2 นาที
-2. **ความถูกต้องและปลอดภัยของข้อมูล:** จัดเก็บข้อมูลแบบ 3NF ปราศจากข้อมูลซ้ำซ้อน พร้อมระบบสิทธิ์ผู้ดูแลระบบที่เข้มงวด
-3. **การทำงานร่วมกันอย่างมีประสิทธิภาพ:** เจ้าหน้าที่ออกตรวจภาคสนามและเจ้าหน้าที่พิมพ์ใบอนุญาตในสำนักงานสามารถเชื่อมโยงสถานะงานกันได้แบบ Real-time
-4. **ความพร้อมในการขยายผล:** สถาปัตยกรรมรองรับการนำไปติดตั้งใช้งานทั้งแบบ Local Server และ Cloud Server สำหรับหน่วยงานองค์กรปกครองส่วนท้องถิ่นอื่นต่อไป
+```mermaid
+graph TD
+    subgraph Client Layer
+        A1[เจ้าหน้าที่ / ผู้ดูแลระบบ] -->|HTTPS Web Browser| B[Inertia.js + React SPA]
+        A2[บัตรประชาชนตัวจริง] -->|เสียบการ์ด| H[USB Smart Card Reader]
+    end
 
+    subgraph Application Server
+        B -->|Inertia Request / CSRF Token| C[Laravel 12 Controller Router]
+        C --> D1[BusinessController]
+        C --> D2[InspectionController]
+        C --> D3[DocumentController]
+        C --> D4[SmartCardController]
+        C --> D5[DashboardController]
+
+        D4 -->|Subprocess Shell Execution| E1[scripts/read_card.py]
+        H -.->|PC/SC Driver| E1
+
+        D3 -->|DocumentService.php| E2[scripts/generate_app_pdf.py]
+        E2 -->|ReportLab Canvas + pypdf| F1[(app_template.pdf)]
+        E2 -->|Rendered Stream| G1[Official PDF Output]
+    end
+
+    subgraph Persistence Layer
+        D1 & D2 & D3 & D5 <-->|Eloquent ORM / PDO| DB[(MySQL 8.0: doingam_db)]
+        D2 -.->|Upload Images| CLOUD[Google Drive / Cloud Storage]
+    end
+```
+
+---
+
+## 9. โครงสร้างโฟลเดอร์ซอร์สโค้ด (Directory Structure)
+
+```
+D:\PJ DNG\
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── AdminController.php           # จัดการผู้ใช้ อนุมัติสิทธิ์ รีเซ็ตรหัสผ่าน
+│   │   │   ├── AuthController.php            # เข้าสู่ระบบ ออกจากระบบ
+│   │   │   ├── BusinessController.php        # ทะเบียนกิจการ เพิ่ม/แก้ไข/ลบ/ออกใบคำขอ
+│   │   │   ├── DashboardController.php       # สรุปสถิติสำหรับหน้าแรก
+│   │   │   ├── DocumentController.php        # สร้างและพรีวิวเอกสารคำขอ และ อภ.๒
+│   │   │   ├── ExpirationController.php      # ตรวจสอบวันหมดอายุ และส่งออก Excel
+│   │   │   ├── InspectionController.php      # บันทึกผลตรวจสุขลักษณะ และรอบการตรวจ
+│   │   │   ├── PendingPrintController.php    # จัดการรายการที่รอพิมพ์ใบอนุญาต
+│   │   │   ├── SearchController.php          # ระบบสืบค้นอัจฉริยะ Multi-criteria
+│   │   │   └── SmartCardController.php       # Controller รับคำสั่งอ่านบัตร USB / Mock
+│   │   └── Middleware/
+│   ├── Models/
+│   │   ├── Business.php                      # Model สถานประกอบการ
+│   │   ├── BusinessCategory.php              # Model หมวดหมู่ประเภทกิจการ
+│   │   ├── InspectionRecord.php              # Model ผลการออกตรวจ
+│   │   ├── InspectionRound.php               # Model รอบการตรวจ
+│   │   ├── License.php                       # Model ใบอนุญาต
+│   │   ├── Owner.php                         # Model ข้อมูลเจ้าของกิจการ
+│   │   └── User.php                          # Model ผู้ใช้งานระบบ
+│   └── Services/
+│       └── DocumentService.php               # เซอร์วิสจัดการข้อมูลส่งต่อให้สคริปต์ PDF
+├── database/
+│   ├── migrations/
+│   │   ├── 0001_01_01_000000_create_users_table.php
+│   │   ├── 0001_01_01_000001_create_cache_table.php
+│   │   ├── 0001_01_01_000002_create_jobs_table.php
+│   │   ├── 2026_11_13_000001_create_doingam_tables.php
+│   │   ├── 2026_11_13_000002_add_inspection_status_and_print_status.php
+│   │   └── 2026_11_13_000003_add_workflow_status_to_businesses.php
+│   └── seeders/
+├── resources/
+│   ├── js/
+│   │   ├── Components/
+│   │   │   ├── DeleteConfirmModal.jsx        # โมดอลยืนยันการลบข้อมูล
+│   │   │   ├── InspectionRecordModal.jsx     # โมดอลบันทึกผลการออกตรวจสุขลักษณะ
+│   │   │   ├── InspectionStatusBadge.jsx     # แบดจ์แสดงสถานะการตรวจ
+│   │   │   ├── Pagination.jsx                # คอมโพเนนต์แบ่งหน้า
+│   │   │   ├── SmartCardModal.jsx            # โมดอลแสดงแอนิเมชันอ่านบัตรประชาชน
+│   │   │   └── StatusBadge.jsx               # แบดจ์สถานะใบอนุญาต
+│   │   ├── Pages/
+│   │   │   ├── Admin/Users.jsx               # หน้าจอจัดการผู้ใช้สำหรับแอดมิน
+│   │   │   ├── Auth/Login.jsx                # หน้าจอลงชื่อเข้าใช้งาน
+│   │   │   ├── Business/Create.jsx           # หน้าจอลงทะเบียนสถานประกอบการใหม่
+│   │   │   ├── Business/Show.jsx             # หน้ารายละเอียดสถานประกอบการ
+│   │   │   ├── Dashboard/Index.jsx           # หน้าแดชบอร์ดสถิติ
+│   │   │   ├── Document/Preview.jsx          # หน้าพรีวิวแบบคำขอและพิมพ์เอกสาร
+│   │   │   ├── Expiration/Index.jsx          # หน้าติดตามวันหมดอายุของใบอนุญาต
+│   │   │   ├── Inspection/Index.jsx          # หน้าจัดการรอบตรวจและบันทึกผลตรวจ
+│   │   │   ├── PendingPrint/Index.jsx        # หน้ารายการรอพิมพ์ใบอนุญาต
+│   │   │   └── Search/Index.jsx              # หน้าจอค้นหาอัจฉริยะ
+│   │   └── app.jsx                           # Entry Point ของ Inertia.js React App
+│   └── views/
+│       ├── app.blade.php                     # HTML Shell หลักของระบบ
+│       └── documents/                        # Blade Templates สำหรับเอกสาร
+├── routes/
+│   └── web.php                               # การกำหนดเส้นทาง (Routing) ทั้งหมดของระบบ
+├── scripts/
+│   ├── generate_app_pdf.py                   # สคริปต์ Python สำหรับ Overlay PDF บน app_template.pdf
+│   └── read_card.py                          # สคริปต์ Python ติดต่อ Smart Card Reader USB (pyscard)
+├── storage/
+│   └── app/
+│       └── templates/
+│           ├── app_template.pdf              # ไฟล์แม่แบบคำขอรับใบอนุญาต อบต.ดอยงาม
+│           └── THSarabunNew.ttf              # ฟอนต์มาตรฐานราชการไทย
+├── composer.json                             # กำหนด PHP Dependencies
+├── package.json                              # กำหนด JavaScript & React Dependencies
+├── vite.config.js                            # การตั้งค่า Vite และ Tailwind CSS
+└── .env                                      # ค่าคอนฟิกูเรชันระบบและฐานข้อมูล
+```
+
+---
+
+## 10. ขั้นตอนการติดตั้งและตั้งค่าระบบ (Setup & Deployment Guide)
+
+### 10.1 ความต้องการของระบบ (System Requirements)
+- **ระบบปฏิบัติการ:** Windows 10/11 หรือ Ubuntu Server 22.04 LTS / 24.04 LTS
+- **PHP:** เวอร์ชัน 8.2 หรือสูงกว่า พร้อม Extensions: `pdo_mysql`, `mbstring`, `openssl`, `curl`, `gd`, `zip`
+- **Node.js:** เวอร์ชัน 18.x หรือ 20.x+ และ npm
+- **Composer:** เวอร์ชัน 2.x+
+- **MySQL Server:** เวอร์ชัน 8.0 หรือ MariaDB 10.5+
+- **Python:** เวอร์ชัน 3.10 ขึ้นไป พร้อมไลบรารี:
+  ```bash
+  pip install pyscard reportlab pypdf
+  ```
+- **เครื่องอ่านบัตรประชาชน:** PC/SC Compliant USB Smart Card Reader (ติดตั้งไดรเวอร์ CCID เรียบร้อย)
+
+### 10.2 ขั้นตอนการติดตั้ง (Step-by-Step Installation)
+
+1. **โคลนคลังโค้ดจาก GitHub:**
+   ```bash
+   git clone https://github.com/384-SupawitWongsupa/ESFD.git
+   cd ESFD
+   ```
+
+2. **ติดตั้งไลบรารี PHP และ JavaScript:**
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **คัดลอกและตั้งค่า Environment Variables (`.env`):**
+   ```bash
+   copy .env.example .env
+   php artisan key:generate
+   ```
+   แก้ไขไฟล์ `.env` สำหรับเชื่อมต่อฐานข้อมูล MySQL:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=doingam_db
+   DB_USERNAME=root
+   DB_PASSWORD=your_password
+   ```
+
+4. **รัน Migration สร้างโครงสร้างฐานข้อมูล:**
+   ```bash
+   php artisan migrate
+   ```
+
+5. **ติดตั้งไลบรารี Python สำหรับเครื่องอ่านบัตรและเอกสาร PDF:**
+   ```bash
+   pip install pyscard reportlab pypdf
+   ```
+
+6. **คอมไพล์ Frontend และสตาร์ทเซิร์ฟเวอร์:**
+   ```bash
+   # Terminal 1: รัน Development Server ของ Laravel
+   php artisan serve --port=8000
+
+   # Terminal 2: รัน Vite Frontend HMR
+   npm run dev
+   ```
+   *เข้าใช้งานระบบผ่านเบราว์เซอร์ที่: `http://127.0.0.1:8000`*
+
+### 10.3 ข้อพิจารณาสำหรับการ Deploy บน Cloud (Cloud vs On-Premise)
+- **เครื่องอ่านบัตรประชาชน (Smart Card Reader):** เครื่องอ่านบัตรทำงานผ่านพอร์ต USB ในเครื่องลูกข่าย (Client Machine) หากนำระบบไป Deploy บน Cloud Server ตัวเซิร์ฟเวอร์จะไม่สามารถเข้าถึงพอร์ต USB ของเครื่องเจ้าหน้าที่ได้โดยตรง
+- **แนวทางแก้ไขสำหรับ Cloud:** สามารถรัน Local Agent ขนาดเล็ก (เช่น Python Daemon หรือ Go CLI) บนเครื่องคอมพิวเตอร์ของเจ้าหน้าที่ที่พอร์ต `localhost:8182` เพื่อให้อ่านบัตรและส่งข้อมูล JSON ไปยังหน้าต่างเบราว์เซอร์ของ Cloud Web App ได้อย่างปลอดภัย
+
+---
+
+## 11. โครงสร้างกิ่งงานของระบบ (Git Branching Strategy)
+
+คลังข้อมูลระบบบน GitHub (`https://github.com/384-SupawitWongsupa/ESFD.git`) ถูกแบ่งออกเป็น Branch ตามขอบเขตการพัฒนาเพื่อความเป็นระเบียบและง่ายต่อการบำรุงรักษา:
+
+| กิ่งงาน (Branch Name) | ขอบเขตการพัฒนาและเนื้อหา (Scope of Feature) |
+| :--- | :--- |
+| `main` | Production Branch รวบรวมทุกฟีเจอร์ที่ผ่านการทดสอบและทำงานร่วมกันได้สมบูรณ์ |
+| `feature/auth-and-admin` | ระบบยืนยันตัวตน (Authentication), Role Management, สิทธิ์ Admin/Staff และตาราง Users |
+| `feature/smartcard-and-business` | การเชื่อมต่อเครื่องอ่านบัตรประชาชน USB, ระบบทะเบียนกิจการ, และระบบค้นหาอัจฉริยะ |
+| `feature/inspection-workflow` | วงจรการออกตรวจสุขลักษณะ, รอบตรวจ, โมดอลบันทึกผลตรวจ และการต่ออายุใบอนุญาต |
+| `feature/documents-and-pdf` | ระบบพิมพ์เอกสารราชการ, PDF Coordinate Overlay (`generate_app_pdf.py`), แบบคำขอ อบต.ดอยงาม และแบบ อภ.๒ |
+| `feature/dashboard-and-mis` | แดชบอร์ดสถิติผู้บริหาร, ชาร์ต Recharts, ระบบติดตามวันหมดอายุ และการส่งออกรายงาน Excel |
+
+---
+*เอกสารนี้จัดทำขึ้นโดยทีมพัฒนาระบบ เพื่อใช้เป็นมาตรฐานการดำเนินงานและการดูแลรักษาระบบสารสนเทศ อบต.ดอยงาม สถาปัตยกรรมระบบได้รับการตรวจสอบและตรงตามโค้ดจริง 100%*
