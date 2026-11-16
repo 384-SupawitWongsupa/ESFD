@@ -6,7 +6,7 @@ import pypdf
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import ttfonts, pdfmetrics
 
-# Convert arabic digits to thai digits
+# แปลงตัวเลขอารบิกเป็นเลขไทย
 def to_thai_digits(text):
     if text is None or text == '':
         return ''
@@ -15,31 +15,28 @@ def to_thai_digits(text):
 
 def get_best_thai_font():
     """
-    ค้นหาและลงทะเบียนฟอนต์ภาษาไทยมาตรฐานที่สมบูรณ์ที่สุด
-    ป้องกันปัญหาตัวหนังสือไม่ขึ้น สระลอย หรือฟอนต์เพี้ยน
+    ลงทะเบียนฟอนต์ราชการ TH Sarabun New แท้
     """
     script_dir = os.path.dirname(os.path.abspath(__file__))
     base_dir = os.path.dirname(script_dir)
-    
-    candidates = [
-        os.path.join(base_dir, 'storage', 'app', 'templates', 'THSarabunNew.ttf'),
-        os.path.join(base_dir, 'storage', 'app', 'templates', 'Sarabun-Regular.ttf'),
-        r'C:\Windows\Fonts\leelawad.ttf',
-        r'C:\Windows\Fonts\tahoma.ttf',
-    ]
+    sarabun_path = os.path.join(base_dir, 'storage', 'app', 'templates', 'THSarabunNew.ttf')
 
-    for path in candidates:
+    if os.path.exists(sarabun_path):
+        try:
+            pdfmetrics.registerFont(ttfonts.TTFont('THSarabunNew', sarabun_path))
+            return 'THSarabunNew'
+        except Exception as e:
+            print(f"Warning: Failed to load {sarabun_path}: {e}")
+
+    # Fallback to Windows fonts if needed
+    for path in [r'C:\Windows\Fonts\leelawad.ttf', r'C:\Windows\Fonts\tahoma.ttf']:
         if os.path.exists(path):
             try:
-                # ทดสอบลงทะเบียนและตรวจสอบว่ามีอักขระภาษาไทย (0x0E01) หรือไม่
-                font_test = ttfonts.TTFont('ThaiFontCandidate', path)
-                if font_test.face and 0x0E01 in font_test.face.charToGlyph:
-                    pdfmetrics.registerFont(ttfonts.TTFont('THSarabun', path))
-                    return 'THSarabun'
+                pdfmetrics.registerFont(ttfonts.TTFont('THSarabunNew', path))
+                return 'THSarabunNew'
             except Exception:
                 continue
 
-    # Fallback to standard
     return 'Helvetica'
 
 def generate_pdf(template_path, output_path, data):
@@ -54,68 +51,72 @@ def generate_pdf(template_path, output_path, data):
     # Create overlay canvas in memory
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=(width, height))
-    can.setFont(font_name, 14 if font_name == 'THSarabun' else 11)
+    
+    # กำหนดขนาดตัวอักษร 10.0 pt ให้เท่ากับขนาดข้อความจริงในเอกสารแบบฟอร์ม
+    font_size = 10.0
+    can.setFont(font_name, font_size)
 
     # คำขอเลขที่ (ถ้ามี)
     request_no = data.get('request_no') or ''
     if request_no:
-        can.drawString(140, 722.4, to_thai_digits(request_no))
+        can.drawString(140.0, 722.4, to_thai_digits(request_no))
 
     # 1. ประกอบกิจการ
     operation = data.get('business_operation') or ''
     if operation:
-        can.drawString(260, 654.2, str(operation))
+        can.drawString(260.0, 654.2, str(operation))
 
     # 2. เขียนที่
     written_at = data.get('written_at') or 'อบต.ดอยงาม'
-    can.drawString(360, 626.6, str(written_at))
+    can.drawString(360.0, 626.6, str(written_at))
 
     # 3. วันที่ เดือน พ.ศ.
-    can.drawString(355, 598.9, to_thai_digits(data.get('date_day') or ''))
-    can.drawString(415, 598.9, str(data.get('date_month') or ''))
-    can.drawString(505, 598.9, to_thai_digits(data.get('date_year') or ''))
+    can.drawString(355.0, 598.9, to_thai_digits(data.get('date_day') or ''))
+    can.drawString(415.0, 598.9, str(data.get('date_month') or ''))
+    can.drawString(505.0, 598.9, to_thai_digits(data.get('date_year') or ''))
 
     # 4. ข้าพเจ้า
     applicant = data.get('applicant_name') or ''
-    can.drawString(150, 571.3, str(applicant))
+    can.drawString(150.0, 571.3, str(applicant))
 
     # 4.1 อายุ (ถ้ามี)
     age = data.get('age') or ''
     if age:
-        can.drawString(355, 571.3, to_thai_digits(age))
+        can.drawString(355.0, 571.3, to_thai_digits(age))
 
     # 5. สัญชาติ
     nationality = data.get('nationality') or 'ไทย'
-    can.drawString(430, 571.3, str(nationality))
+    can.drawString(430.0, 571.3, str(nationality))
 
     # นิติบุคคล / ผู้มีอำนาจลงนาม
     juristic_rep = data.get('juristic_rep') or ''
     if juristic_rep:
-        can.drawString(100, 541.4, str(juristic_rep))
+        can.drawString(100.0, 541.4, str(juristic_rep))
     elif data.get('is_juristic') and applicant:
-        can.drawString(100, 541.4, str(applicant))
+        can.drawString(100.0, 541.4, str(applicant))
 
     # 6. ที่อยู่
-    can.drawString(205, 515.9, to_thai_digits(data.get('address_no') or ''))
-    can.drawString(275, 515.9, to_thai_digits(data.get('address_moo') or ''))
-    can.drawString(350, 515.9, to_thai_digits(data.get('address_soi') or '-'))
-    can.drawString(430, 515.9, to_thai_digits(data.get('address_road') or '-'))
-    can.drawString(130, 488.3, str(data.get('address_subdistrict') or 'ดอยงาม'))
-    can.drawString(280, 488.3, str(data.get('address_district') or 'พาน'))
-    can.drawString(360, 488.3, str(data.get('address_province') or 'เชียงราย'))
+    can.drawString(205.0, 515.9, to_thai_digits(data.get('address_no') or ''))
+    can.drawString(275.0, 515.9, to_thai_digits(data.get('address_moo') or ''))
+    can.drawString(350.0, 515.9, to_thai_digits(data.get('address_soi') or '-'))
+    can.drawString(430.0, 515.9, to_thai_digits(data.get('address_road') or '-'))
+    can.drawString(130.0, 488.3, str(data.get('address_subdistrict') or 'ดอยงาม'))
+    can.drawString(280.0, 488.3, str(data.get('address_district') or 'พาน'))
+    can.drawString(360.0, 488.3, str(data.get('address_province') or 'เชียงราย'))
 
     # 7. หมายเลขโทรศัพท์
-    can.drawString(150, 460.6, to_thai_digits(data.get('phone') or ''))
+    can.drawString(150.0, 460.6, to_thai_digits(data.get('phone') or ''))
 
     # 8. เครื่องหมาย / ในรายการเอกสารแนบ (ข้อ ๒) แต่ละข้อสามารถเลือกติ๊กถูกเองได้
+    # พิกัดตรงกลางช่อง [  ] พอดีเป๊ะ
     chk_positions = {
-        'chk_1': (112.5, 405.0), # สำเนาบัตรประจำตัวประชาชน
-        'chk_2': (112.5, 377.0), # สำเนาใบอนุญาตตามกฎหมาย
-        'chk_3': (112.5, 349.5), # หนังสือ EIA
-        'chk_4': (112.5, 322.0), # ใบมอบอำนาจ
-        'chk_5': (112.5, 294.5), # สำเนาหนังสือรับรองการจดทะเบียนเป็นนิติบุคคล
-        'chk_6': (112.5, 266.5), # หลักฐานอำนาจลงนามแทนนิติบุคคล
-        'chk_7': (112.5, 239.0), # เอกสารและหลักฐานอื่นๆ
+        'chk_1': (112.0, 403.0), # สำเนาบัตรประจำตัวประชาชน
+        'chk_2': (112.0, 375.4), # สำเนาใบอนุญาตตามกฎหมาย
+        'chk_3': (112.0, 347.8), # หนังสือ EIA
+        'chk_4': (112.0, 320.1), # ใบมอบอำนาจ
+        'chk_5': (112.0, 294.7), # สำเนาหนังสือรับรองการจดทะเบียนเป็นนิติบุคคล
+        'chk_6': (112.0, 264.8), # หลักฐานอำนาจลงนามแทนนิติบุคคล
+        'chk_7': (112.0, 237.2), # เอกสารและหลักฐานอื่นๆ
     }
 
     has_explicit_chk = any(k in data for k in chk_positions)
@@ -127,13 +128,13 @@ def generate_pdf(template_path, output_path, data):
     else:
         # Default fallback
         if data.get('is_juristic'):
-            can.drawString(112.5, 294.5, '/')
+            can.drawString(112.0, 294.7, '/')
         else:
-            can.drawString(112.5, 405.0, '/')
+            can.drawString(112.0, 403.0, '/')
 
     # 9. ลายเซ็นชื่อผู้ขออนุญาตในวงเล็บท้ายเอกสาร
     if applicant:
-        can.drawString(255, 98.9, f"({applicant})")
+        can.drawString(255.0, 98.9, f"({applicant})")
 
     can.save()
     packet.seek(0)

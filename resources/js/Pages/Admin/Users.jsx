@@ -149,11 +149,10 @@ export default function AdminUsers({ users }) {
                                         {u.position || '-'}
                                     </td>
                                     <td className="py-4 px-5">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-normal ${
-                                            u.role === 'admin'
-                                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                                                : 'bg-slate-100 text-slate-700 border border-slate-200'
-                                        }`}>
+                                        <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-normal ${u.role === 'admin'
+                                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                            : 'bg-slate-100 text-slate-700 border border-slate-200'
+                                            }`}>
                                             {u.role === 'admin' ? 'ผู้ดูแลระบบ (Admin)' : 'เจ้าหน้าที่ (Staff)'}
                                         </span>
                                     </td>

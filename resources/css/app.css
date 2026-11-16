@@ -1,5 +1,19 @@
 @import 'tailwindcss';
 
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('/fonts/THSarabunNew.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('/fonts/THSarabunNew_Bold.ttf') format('truetype');
+    font-weight: bold;
+    font-style: normal;
+}
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';

@@ -239,7 +239,7 @@ export default function DocumentPreview({
 
             {/* โหมดที่ ๑: แบบฟอร์มกรอกข้อมูลลงในแบบฟอร์มโดยตรง (Interactive In-Place Form) */}
             {activeTab === 'interactive_form' && (
-                <div className="bg-white rounded-2xl border border-slate-300 shadow-sm p-8 sm:p-14 max-w-4xl mx-auto text-slate-900 leading-relaxed font-serif text-[15.5px]">
+                <div className="bg-white rounded-2xl border border-slate-300 shadow-sm p-8 sm:p-14 max-w-4xl mx-auto text-slate-900 leading-relaxed font-['THSarabunNew',serif] text-[16px]">
                     {/* กล่องคำขอเลขที่ */}
                     <div className="flex justify-between items-start mb-6">
                         <div className="border border-slate-800 p-2.5 w-48 text-center text-sm leading-tight rounded-md bg-slate-50/50">
