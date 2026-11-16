@@ -104,7 +104,7 @@ export default function Dashboard({
                     </Button>
                     <Link href="/pending-print">
                         <Button variant="outline" size="sm" className="text-sm font-normal text-emerald-800 border-emerald-300 hover:bg-emerald-50 py-2 px-3.5">
-                            รอพิมพ์ใบ อภ.๒ ({metrics.pendingPrintCount || 0})
+                            สถานะกิจการ ({metrics.pendingPrintCount || 0})
                         </Button>
                     </Link>
                     <Link href="/businesses/create">

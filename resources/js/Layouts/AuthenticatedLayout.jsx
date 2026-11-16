@@ -57,7 +57,7 @@ export default function AuthenticatedLayout({ children, title, description }) {
             active: currentUrl.startsWith('/expirations'),
         },
         {
-            name: 'รอพิมพ์ใบ อภ.๒',
+            name: 'สถานะกิจการ',
             href: '/pending-print',
             icon: Printer,
             active: currentUrl.startsWith('/pending-print'),

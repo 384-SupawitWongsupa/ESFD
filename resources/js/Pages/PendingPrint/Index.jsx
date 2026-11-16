@@ -39,10 +39,10 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
 
     return (
         <AuthenticatedLayout
-            title="รายการรอพิมพ์ใบอนุญาต อภ.๒"
-            description="แสดงสถานประกอบการที่ยังไม่ได้พิมพ์ใบอนุญาตประกอบกิจการ"
+            title="สถานะกิจการ"
+            description="แสดงสถานะขั้นตอนของสถานประกอบการและรายการพิมพ์ใบอนุญาต อภ.๒"
         >
-            <Head title="รอพิมพ์ใบ อภ.๒" />
+            <Head title="สถานะกิจการ" />
 
             {/* Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
