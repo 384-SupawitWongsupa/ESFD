@@ -126,63 +126,99 @@ def generate_aph2_pdf(output_path, data):
     can.setFont(font_name, font_size)
 
     # 1. เล่มที่, เลขที่, ปี
-    book = data.get('receipt_book') or '-'
-    no = data.get('receipt_no') or '-'
-    year = data.get('license_year') or ''
-    can.drawString(90.0, 636.5, to_thai_digits(book))
-    can.drawString(145.0, 636.5, to_thai_digits(no))
-    can.drawString(200.0, 636.5, to_thai_digits(year))
+    # ข้อกำหนด: เล่มที่ ให้เว้นว่างไว้เพื่อให้เจ้าหน้าที่กรอกแทนได้
+    book = str(data.get('receipt_book') or '').strip()
+    no = str(data.get('receipt_no') or '').strip()
+    year = str(data.get('license_year') or '').strip()
+    if book and book not in ['-', 'None', 'ว่าง']:
+        can.drawString(90.0, 636.5, to_thai_digits(book))
+    if no and no not in ['-', 'None']:
+        can.drawString(145.0, 636.5, to_thai_digits(no))
+    if year and year not in ['-', 'None']:
+        can.drawString(200.0, 636.5, to_thai_digits(year))
 
     # 2. อนุญาตให้ (owner_name) & สัญชาติ
-    owner_name = data.get('owner_name') or '-'
+    owner_name = data.get('owner_name') or ''
     nationality = data.get('nationality') or 'ไทย'
-    can.drawString(285.0, 611.7, str(owner_name))
-    can.drawString(505.0, 611.7, str(nationality))
+    if owner_name and owner_name != '-':
+        can.drawString(285.0, 611.7, str(owner_name))
+    if nationality and nationality != '-':
+        can.drawString(505.0, 611.7, str(nationality))
 
     # 3. ที่อยู่ผู้ประกอบการ (เลขที่, หมู่, ตำบล, อำเภอ, จังหวัด)
-    can.drawString(120.0, 593.0, to_thai_digits(data.get('office_address') or '-'))
-    can.drawString(200.0, 593.0, to_thai_digits(data.get('moo') or '-'))
-    can.drawString(265.0, 593.0, str(data.get('subdistrict') or 'ดอยงาม'))
-    can.drawString(373.0, 593.0, str(data.get('district') or 'พาน'))
-    can.drawString(468.0, 593.0, str(data.get('province') or 'เชียงราย'))
+    if data.get('office_address') and data.get('office_address') != '-':
+        can.drawString(120.0, 593.0, to_thai_digits(data.get('office_address')))
+    if data.get('moo') and data.get('moo') != '-':
+        can.drawString(200.0, 593.0, to_thai_digits(data.get('moo')))
+    if data.get('subdistrict'):
+        can.drawString(265.0, 593.0, str(data.get('subdistrict')))
+    if data.get('district'):
+        can.drawString(373.0, 593.0, str(data.get('district')))
+    if data.get('province'):
+        can.drawString(468.0, 593.0, str(data.get('province')))
 
     # 4. ทะเบียนนิติบุคคล / บัตรประชาชน & โทรศัพท์
-    citizen_or_juristic = data.get('id_card_or_juristic') or '-'
-    phone = data.get('phone') or '-'
-    can.drawString(175.0, 574.3, to_thai_digits(citizen_or_juristic))
-    can.drawString(370.0, 574.3, to_thai_digits(phone))
+    citizen_or_juristic = data.get('id_card_or_juristic') or ''
+    phone = data.get('phone') or ''
+    if citizen_or_juristic and citizen_or_juristic != '-':
+        can.drawString(175.0, 574.3, to_thai_digits(citizen_or_juristic))
+    if phone and phone != '-':
+        can.drawString(370.0, 574.3, to_thai_digits(phone))
 
     # 5. ชื่อสถานประกอบการ
-    shop_name = data.get('shop_name') or 'ไม่มีชื่อทางการค้า'
-    can.drawString(230.0, 549.5, str(shop_name))
+    shop_name = data.get('shop_name') or ''
+    if shop_name:
+        can.drawString(230.0, 549.5, str(shop_name))
 
     # 6. ประเภทกิจการ
-    op_type = data.get('operation_type') or '-'
-    can.drawString(100.0, 530.7, str(op_type))
+    op_type = data.get('operation_type') or ''
+    if op_type and op_type != '-':
+        can.drawString(100.0, 530.7, str(op_type))
 
     # 7. ที่ตั้งสถานประกอบการ (เลขที่, หมู่, ตำบล, อำเภอ, จังหวัด)
-    can.drawString(120.0, 512.0, to_thai_digits(data.get('shop_address') or '-'))
-    can.drawString(200.0, 512.0, to_thai_digits(data.get('shop_moo') or '-'))
-    can.drawString(265.0, 512.0, str(data.get('shop_subdistrict') or 'ดอยงาม'))
-    can.drawString(373.0, 512.0, str(data.get('shop_district') or 'พาน'))
-    can.drawString(468.0, 512.0, str(data.get('shop_province') or 'เชียงราย'))
+    if data.get('shop_address') and data.get('shop_address') != '-':
+        can.drawString(120.0, 512.0, to_thai_digits(data.get('shop_address')))
+    if data.get('shop_moo') and data.get('shop_moo') != '-':
+        can.drawString(200.0, 512.0, to_thai_digits(data.get('shop_moo')))
+    if data.get('shop_subdistrict'):
+        can.drawString(265.0, 512.0, str(data.get('shop_subdistrict')))
+    if data.get('shop_district'):
+        can.drawString(373.0, 512.0, str(data.get('shop_district')))
+    if data.get('shop_province'):
+        can.drawString(468.0, 512.0, str(data.get('shop_province')))
 
     # 8. หมายเลขโทรศัพท์สถานประกอบการ
     shop_phone = data.get('shop_phone') or phone
-    can.drawString(140.0, 493.3, to_thai_digits(shop_phone))
+    if shop_phone and shop_phone != '-':
+        can.drawString(140.0, 493.3, to_thai_digits(shop_phone))
 
     # 9. อัตราค่าธรรมเนียมปีละ ... บาท ( ... )
     fee = data.get('fee') or 0
-    fee_str = f"{fee:,.2f}" if isinstance(fee, (int, float)) else str(fee)
+    try:
+        fee_float = float(fee)
+        fee_str = f"{fee_float:,.2f}"
+    except (ValueError, TypeError):
+        fee_str = str(fee)
     fee_word = data.get('fee_text') or baht_text(fee)
-    can.drawString(230.0, 468.6, to_thai_digits(fee_str))
-    can.drawString(325.0, 468.6, str(fee_word))
+    if fee_str and fee_str not in ['0', '0.00', '0.0', '-']:
+        can.drawString(230.0, 468.6, to_thai_digits(fee_str))
+    if fee_word and fee_word != '-':
+        can.drawString(325.0, 468.6, str(fee_word))
 
     # 10. ตามใบเสร็จรับเงินเล่มที่ ... เลขที่ ... ลงวันที่ ...
-    receipt_info = data.get('receipt_info') or (f"{book}/{no}" if book != '-' else '-')
-    receipt_date_str = data.get('receipt_date') or '-'
-    can.drawString(180.0, 449.8, to_thai_digits(receipt_info))
-    can.drawString(360.0, 449.8, str(receipt_date_str))
+    receipt_info = data.get('receipt_info')
+    if receipt_info is None or receipt_info == '':
+        if book and book not in ['-', 'None', 'ว่าง']:
+            receipt_info = f"{book}/{no}" if no else book
+        elif no and no not in ['-', 'None']:
+            receipt_info = no
+        else:
+            receipt_info = ''
+    receipt_date_str = data.get('receipt_date') or ''
+    if receipt_info and str(receipt_info).strip() not in ['-', 'None']:
+        can.drawString(180.0, 449.8, to_thai_digits(receipt_info))
+    if receipt_date_str and str(receipt_date_str).strip() not in ['-', 'None']:
+        can.drawString(360.0, 449.8, str(receipt_date_str))
 
     # 11. เงื่อนไขพิเศษ ๔.๓. และ ๔.๔. (ถ้ามี)
     if has_cond_3 and cond_3:

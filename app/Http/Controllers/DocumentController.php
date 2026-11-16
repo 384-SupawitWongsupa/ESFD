@@ -48,6 +48,57 @@ class DocumentController extends Controller
             ? "{$shopName} ({$opType})" 
             : ($shopName ?: $opType);
 
+        $issueD = $latestLicense && $latestLicense->receipt_date 
+            ? Carbon::parse($latestLicense->receipt_date) 
+            : now();
+        $expireD = $latestLicense && $latestLicense->expire_date 
+            ? Carbon::parse($latestLicense->expire_date) 
+            : now()->addYear();
+
+        $cond3 = ($latestInspection && $latestInspection->condition_4_3 && $latestInspection->condition_4_3 !== 'ไม่มี')
+            ? $latestInspection->condition_4_3 
+            : '';
+        $cond4 = ($latestInspection && $latestInspection->condition_4_4 && $latestInspection->condition_4_4 !== 'ไม่มี')
+            ? $latestInspection->condition_4_4 
+            : '';
+
+        $aph2Data = [
+            'receipt_book' => '', // เว้นว่างไว้ตามที่ผู้ใช้ร้องขอ เพื่อให้เจ้าหน้าที่กรอกเอง
+            'receipt_no' => $latestLicense->receipt_no ?? '',
+            'license_year' => (string)($expireD->year + 543),
+            'owner_name' => $business->owner->owner_name ?? '',
+            'nationality' => 'ไทย',
+            'office_address' => $business->owner->office_address ?: $business->shop_address ?: '',
+            'moo' => $business->owner->moo ?: $business->shop_moo ?: '',
+            'subdistrict' => $business->owner->subdistrict ?: 'ดอยงาม',
+            'district' => $business->owner->district ?: 'พาน',
+            'province' => $business->owner->province ?: 'เชียงราย',
+            'id_card_or_juristic' => $business->owner->citizen_id ?: $business->owner->juristic_id ?: '',
+            'phone' => $business->owner->phone ?: '',
+            'shop_name' => $business->shop_name ?: '',
+            'operation_type' => $business->operation_type ?: ($business->category->category_name ?? ''),
+            'shop_address' => $business->shop_address ?: '',
+            'shop_moo' => $business->shop_moo ?: '',
+            'shop_subdistrict' => 'ดอยงาม',
+            'shop_district' => 'พาน',
+            'shop_province' => 'เชียงราย',
+            'shop_phone' => $business->shop_phone ?: $business->owner->phone ?: '',
+            'fee' => $latestLicense ? (string)$latestLicense->fee : '0',
+            'fee_text' => '',
+            'receipt_info' => '',
+            'receipt_date' => $latestLicense && $latestLicense->receipt_date 
+                ? DocumentService::thaiDate($latestLicense->receipt_date) 
+                : DocumentService::thaiDate(now()),
+            'condition_4_3' => $cond3,
+            'condition_4_4' => $cond4,
+            'issue_day' => (string)$issueD->day,
+            'issue_month' => $thaiMonths[$issueD->month],
+            'issue_year' => (string)($issueD->year + 543),
+            'expire_day' => (string)$expireD->day,
+            'expire_month' => $thaiMonths[$expireD->month],
+            'expire_year' => (string)($expireD->year + 543),
+        ];
+
         return Inertia::render('Document/Preview', [
             'business' => $business,
             'owner' => $business->owner,
@@ -74,6 +125,7 @@ class DocumentController extends Controller
                 'is_juristic' => !empty($business->owner->juristic_id),
                 'request_no' => $business->request_no ?: '',
             ],
+            'aph2Data' => $aph2Data,
             'thaiIssueDate' => $latestLicense && $latestLicense->receipt_date 
                 ? DocumentService::thaiDate($latestLicense->receipt_date) 
                 : DocumentService::thaiDate(now()),
@@ -127,7 +179,16 @@ class DocumentController extends Controller
         $business = Business::with(['owner', 'category', 'licenses', 'inspectionRecords'])->findOrFail($businessId);
 
         $overrides = [];
-        $allowed = ['condition_4_3', 'condition_4_4', 'receipt_book', 'receipt_no', 'fee', 'owner_name', 'shop_name'];
+        $allowed = [
+            'receipt_book', 'receipt_no', 'license_year',
+            'owner_name', 'nationality', 'office_address', 'moo', 'subdistrict', 'district', 'province',
+            'id_card_or_juristic', 'phone', 'shop_name', 'operation_type',
+            'shop_address', 'shop_moo', 'shop_subdistrict', 'shop_district', 'shop_province', 'shop_phone',
+            'fee', 'fee_text', 'receipt_info', 'receipt_date',
+            'condition_4_3', 'condition_4_4',
+            'issue_day', 'issue_month', 'issue_year',
+            'expire_day', 'expire_month', 'expire_year'
+        ];
         foreach ($allowed as $k) {
             if ($request->has($k)) {
                 $overrides[$k] = $request->input($k);

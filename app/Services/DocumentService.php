@@ -60,30 +60,31 @@ class DocumentService
         $cfgPath = tempnam(sys_get_temp_dir(), 'aph2_cfg_') . '.json';
 
         $data = [
-            'receipt_book' => $latestLicense->receipt_book ?? '-',
-            'receipt_no' => $latestLicense->receipt_no ?? '-',
+            'receipt_book' => $latestLicense->receipt_book ?? '', // ว่างไว้เพื่อให้เจ้าหน้าที่กรอกเอง
+            'receipt_no' => $latestLicense->receipt_no ?? '',
             'license_year' => (string)($expireD->year + 543),
-            'owner_name' => $business->owner->owner_name ?? '-',
+            'owner_name' => $business->owner->owner_name ?? '',
             'nationality' => 'ไทย',
-            'office_address' => $business->owner->office_address ?: $business->shop_address ?: '-',
-            'moo' => $business->owner->moo ?: $business->shop_moo ?: '-',
+            'office_address' => $business->owner->office_address ?: $business->shop_address ?: '',
+            'moo' => $business->owner->moo ?: $business->shop_moo ?: '',
             'subdistrict' => $business->owner->subdistrict ?: 'ดอยงาม',
             'district' => $business->owner->district ?: 'พาน',
             'province' => $business->owner->province ?: 'เชียงราย',
-            'id_card_or_juristic' => $business->owner->citizen_id ?: $business->owner->juristic_id ?: '-',
-            'phone' => $business->owner->phone ?: '-',
-            'shop_name' => $business->shop_name ?: 'ไม่มีชื่อทางการค้า',
-            'operation_type' => $business->operation_type ?: ($business->category->category_name ?? '-'),
-            'shop_address' => $business->shop_address ?: '-',
-            'shop_moo' => $business->shop_moo ?: '-',
+            'id_card_or_juristic' => $business->owner->citizen_id ?: $business->owner->juristic_id ?: '',
+            'phone' => $business->owner->phone ?: '',
+            'shop_name' => $business->shop_name ?: '',
+            'operation_type' => $business->operation_type ?: ($business->category->category_name ?? ''),
+            'shop_address' => $business->shop_address ?: '',
+            'shop_moo' => $business->shop_moo ?: '',
             'shop_subdistrict' => 'ดอยงาม',
             'shop_district' => 'พาน',
             'shop_province' => 'เชียงราย',
-            'shop_phone' => $business->shop_phone ?: $business->owner->phone ?: '-',
+            'shop_phone' => $business->shop_phone ?: $business->owner->phone ?: '',
             'fee' => (float)($latestLicense->fee ?? 0),
-            'receipt_info' => ($latestLicense && $latestLicense->receipt_book) 
+            'fee_text' => '',
+            'receipt_info' => ($latestLicense && $latestLicense->receipt_book && $latestLicense->receipt_no) 
                 ? "{$latestLicense->receipt_book}/{$latestLicense->receipt_no}" 
-                : '-',
+                : ($latestLicense->receipt_no ?? ''),
             'receipt_date' => $latestLicense && $latestLicense->receipt_date 
                 ? self::thaiDate($latestLicense->receipt_date) 
                 : self::thaiDate(now()),
