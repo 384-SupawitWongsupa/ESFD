@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Card } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/Button';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Users, History } from 'lucide-react';
 
 export default function AdminUsers({ users }) {
     const [passwordModalUser, setPasswordModalUser] = useState(null);
@@ -101,6 +101,24 @@ export default function AdminUsers({ users }) {
                         + เพิ่มเจ้าหน้าที่ใหม่
                     </Button>
                 </div>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-slate-200 mb-6 gap-6">
+                <Link
+                    href="/admin/users"
+                    className="pb-3 text-sm font-semibold text-emerald-700 border-b-2 border-emerald-600 flex items-center gap-2"
+                >
+                    <Users className="w-4 h-4" />
+                    รายชื่อเจ้าหน้าที่และสิทธิ์ (Users)
+                </Link>
+                <Link
+                    href="/admin/logs"
+                    className="pb-3 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors flex items-center gap-2"
+                >
+                    <History className="w-4 h-4" />
+                    ประวัติการเข้าสู่ระบบ (Login Logs)
+                </Link>
             </div>
 
             {/* Users Table */}

@@ -4,14 +4,26 @@
     <meta charset="utf-8">
     <title>ใบอนุญาต อภ.๒ - {{ $business->shop_name }}</title>
     <style>
+        @font-face {
+            font-family: 'THSarabunNew';
+            font-style: normal;
+            font-weight: normal;
+            src: url("{{ storage_path('app/templates/THSarabunNew.ttf') }}") format('truetype');
+        }
+        @font-face {
+            font-family: 'THSarabunNew';
+            font-style: normal;
+            font-weight: bold;
+            src: url("{{ storage_path('app/templates/THSarabunNew.ttf') }}") format('truetype');
+        }
         @page {
             size: A4 portrait;
-            margin: 20mm 20mm 20mm 20mm;
+            margin: 18mm 20mm 18mm 20mm;
         }
         body {
-            font-family: 'Sarabun', 'Garuda', 'TH Sarabun New', sans-serif;
-            font-size: 15pt;
-            line-height: 1.6;
+            font-family: 'THSarabunNew', sans-serif;
+            font-size: 16pt;
+            line-height: 1.5;
             color: #000;
         }
         .header-top {

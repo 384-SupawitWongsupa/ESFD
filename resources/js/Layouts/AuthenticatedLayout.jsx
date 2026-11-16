@@ -15,6 +15,7 @@ import {
     Shield,
     CreditCard,
     Printer,
+    History,
 } from 'lucide-react';
 import SmartCardModal from '@/Components/SmartCardModal';
 
@@ -68,7 +69,13 @@ export default function AuthenticatedLayout({ children, title, description }) {
             name: 'จัดการเจ้าหน้าที่ (Admin)',
             href: '/admin/users',
             icon: Users,
-            active: currentUrl.startsWith('/admin'),
+            active: currentUrl === '/admin/users',
+        });
+        navItems.push({
+            name: 'ประวัติเข้าสู่ระบบ (Logs)',
+            href: '/admin/logs',
+            icon: History,
+            active: currentUrl.startsWith('/admin/logs'),
         });
     }
 

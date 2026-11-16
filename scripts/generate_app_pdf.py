@@ -8,30 +8,42 @@ from reportlab.pdfbase import ttfonts, pdfmetrics
 
 # Convert arabic digits to thai digits
 def to_thai_digits(text):
-    if not text and text != 0:
+    if text is None or text == '':
         return ''
     thai_digits = ['๐', '๑', '๒', '๓', '๔', '๕', '๖', '๗', '๘', '๙']
     return ''.join(thai_digits[int(c)] if c.isdigit() else c for c in str(text))
 
-def generate_pdf(template_path, output_path, data):
-    font_name = 'THSarabun'
+def get_best_thai_font():
+    """
+    ค้นหาและลงทะเบียนฟอนต์ภาษาไทยมาตรฐานที่สมบูรณ์ที่สุด
+    ป้องกันปัญหาตัวหนังสือไม่ขึ้น สระลอย หรือฟอนต์เพี้ยน
+    """
     script_dir = os.path.dirname(os.path.abspath(__file__))
     base_dir = os.path.dirname(script_dir)
-    sarabun_path = os.path.join(base_dir, 'storage', 'app', 'templates', 'THSarabunNew.ttf')
+    
+    candidates = [
+        os.path.join(base_dir, 'storage', 'app', 'templates', 'THSarabunNew.ttf'),
+        os.path.join(base_dir, 'storage', 'app', 'templates', 'Sarabun-Regular.ttf'),
+        r'C:\Windows\Fonts\leelawad.ttf',
+        r'C:\Windows\Fonts\tahoma.ttf',
+    ]
 
-    try:
-        if os.path.exists(sarabun_path):
-            pdfmetrics.registerFont(ttfonts.TTFont('THSarabun', sarabun_path))
-            font_name = 'THSarabun'
-        else:
-            pdfmetrics.registerFont(ttfonts.TTFont('THSarabun', r'C:\Windows\Fonts\leelawad.ttf'))
-            font_name = 'THSarabun'
-    except Exception:
-        try:
-            pdfmetrics.registerFont(ttfonts.TTFont('THSarabun', r'C:\Windows\Fonts\leelawad.ttf'))
-            font_name = 'THSarabun'
-        except Exception:
-            font_name = 'Helvetica'
+    for path in candidates:
+        if os.path.exists(path):
+            try:
+                # ทดสอบลงทะเบียนและตรวจสอบว่ามีอักขระภาษาไทย (0x0E01) หรือไม่
+                font_test = ttfonts.TTFont('ThaiFontCandidate', path)
+                if font_test.face and 0x0E01 in font_test.face.charToGlyph:
+                    pdfmetrics.registerFont(ttfonts.TTFont('THSarabun', path))
+                    return 'THSarabun'
+            except Exception:
+                continue
+
+    # Fallback to standard
+    return 'Helvetica'
+
+def generate_pdf(template_path, output_path, data):
+    font_name = get_best_thai_font()
 
     # Read base template (page 0)
     reader = pypdf.PdfReader(template_path)
@@ -42,7 +54,7 @@ def generate_pdf(template_path, output_path, data):
     # Create overlay canvas in memory
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=(width, height))
-    can.setFont(font_name, 14 if font_name == 'THSarabun' else 10.5)
+    can.setFont(font_name, 14 if font_name == 'THSarabun' else 11)
 
     # คำขอเลขที่ (ถ้ามี)
     request_no = data.get('request_no') or ''
@@ -52,11 +64,11 @@ def generate_pdf(template_path, output_path, data):
     # 1. ประกอบกิจการ
     operation = data.get('business_operation') or ''
     if operation:
-        can.drawString(260, 654.2, operation)
+        can.drawString(260, 654.2, str(operation))
 
     # 2. เขียนที่
     written_at = data.get('written_at') or 'อบต.ดอยงาม'
-    can.drawString(360, 626.6, written_at)
+    can.drawString(360, 626.6, str(written_at))
 
     # 3. วันที่ เดือน พ.ศ.
     can.drawString(355, 598.9, to_thai_digits(data.get('date_day') or ''))
@@ -65,7 +77,7 @@ def generate_pdf(template_path, output_path, data):
 
     # 4. ข้าพเจ้า
     applicant = data.get('applicant_name') or ''
-    can.drawString(150, 571.3, applicant)
+    can.drawString(150, 571.3, str(applicant))
 
     # 4.1 อายุ (ถ้ามี)
     age = data.get('age') or ''
@@ -74,14 +86,14 @@ def generate_pdf(template_path, output_path, data):
 
     # 5. สัญชาติ
     nationality = data.get('nationality') or 'ไทย'
-    can.drawString(430, 571.3, nationality)
+    can.drawString(430, 571.3, str(nationality))
 
     # นิติบุคคล / ผู้มีอำนาจลงนาม
     juristic_rep = data.get('juristic_rep') or ''
     if juristic_rep:
-        can.drawString(100, 541.4, juristic_rep)
+        can.drawString(100, 541.4, str(juristic_rep))
     elif data.get('is_juristic') and applicant:
-        can.drawString(100, 541.4, applicant)
+        can.drawString(100, 541.4, str(applicant))
 
     # 6. ที่อยู่
     can.drawString(205, 515.9, to_thai_digits(data.get('address_no') or ''))

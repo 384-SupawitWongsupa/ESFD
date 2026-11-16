@@ -67,6 +67,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{id}/revoke', [AdminController::class, 'revoke'])->name('users.revoke');
         Route::post('/users/{id}/reset-password', [AdminController::class, 'resetPassword'])->name('users.resetPassword');
         Route::delete('/users/{id}', [AdminController::class, 'destroy'])->name('users.destroy');
+        Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
     });
 
     // 9. Pending Print — รายการรอพิมพ์ใบ อภ.๒

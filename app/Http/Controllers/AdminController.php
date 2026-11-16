@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LoginLog;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
@@ -92,5 +94,61 @@ class AdminController extends Controller
 
         return back()->with('success', "ลบบัญชี {$user->name} เรียบร้อยแล้ว");
     }
-}
 
+    /**
+     * แสดงประวัติและบันทึกการเข้าระบบ (Login Logs) สำหรับ Admin
+     */
+    public function logs(Request $request)
+    {
+        $query = LoginLog::with('user')->orderBy('login_at', 'desc');
+
+        // ค้นหาตามคำค้น (username, name, ip)
+        if ($search = $request->input('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', "%{$search}%")
+                  ->orWhere('name', 'like', "%{$search}%")
+                  ->orWhere('ip_address', 'like', "%{$search}%");
+            });
+        }
+
+        // กรองตามสถานะ (success, failed)
+        if ($status = $request->input('status')) {
+            if ($status !== 'all') {
+                $query->where('status', $status);
+            }
+        }
+
+        // กรองตามระดับสิทธิ์ (admin, staff)
+        if ($role = $request->input('role')) {
+            if ($role !== 'all') {
+                $query->where('role', $role);
+            }
+        }
+
+        // กรองตามวันที่
+        if ($date = $request->input('date')) {
+            $query->whereDate('login_at', $date);
+        }
+
+        $logs = $query->paginate(20)->withQueryString();
+
+        // สรุปสถิติ
+        $stats = [
+            'total' => LoginLog::count(),
+            'success' => LoginLog::where('status', 'success')->count(),
+            'failed' => LoginLog::where('status', 'failed')->count(),
+            'today' => LoginLog::whereDate('login_at', Carbon::today())->count(),
+        ];
+
+        return Inertia::render('Admin/Logs', [
+            'logs' => $logs,
+            'filters' => [
+                'search' => $request->input('search', ''),
+                'status' => $request->input('status', 'all'),
+                'role' => $request->input('role', 'all'),
+                'date' => $request->input('date', ''),
+            ],
+            'stats' => $stats,
+        ]);
+    }
+}
