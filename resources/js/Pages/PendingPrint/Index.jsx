@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Pagination from '@/Components/Pagination';
 import StatusBadge from '@/Components/StatusBadge';
 import InspectionStatusBadge from '@/Components/InspectionStatusBadge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/Card';
+import InspectionRecordModal from '@/Components/InspectionRecordModal';
+import { Card, CardContent } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/Button';
 import { formatThaiDate, formatCitizenId } from '@/lib/utils';
-import { Printer, FileDown, CheckCircle2 } from 'lucide-react';
+import { Printer, FileDown, CheckCircle2, ClipboardCheck, Eye } from 'lucide-react';
 
-export default function PendingPrintIndex({ businesses, filters, stats }) {
+export default function PendingPrintIndex({ businesses, filters, stats, rounds = [] }) {
     const [keyword, setKeyword] = useState(filters.q || '');
     const [activeStatus, setActiveStatus] = useState(filters.status || 'all');
+    const [selectedBusinessForInspection, setSelectedBusinessForInspection] = useState(null);
 
     const handleSearch = (e) => {
         e?.preventDefault();
@@ -24,7 +26,7 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
     };
 
     const handleMarkPrinted = (businessId) => {
-        if (window.confirm('ยืนยันว่าพิมพ์ใบ อภ.๒ แล้ว?')) {
+        if (window.confirm('ยืนยันว่าพิมพ์ใบ อภ.๒ แล้ว? ระบบจะเปลี่ยนสถานะเป็นพิมพ์แล้วเสร็จสิ้น')) {
             router.post(`/pending-print/${businessId}/mark-printed`, {}, {
                 preserveScroll: true,
             });
@@ -32,9 +34,10 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
     };
 
     const statusTabs = [
-        { key: 'all', label: `ทั้งหมด (${stats.total})` },
-        { key: 'pending_inspection', label: `ยังไม่ได้ออกตรวจ (${stats.pending_inspection})` },
-        { key: 'inspected', label: `ออกตรวจแล้ว รอพิมพ์ (${stats.inspected_not_printed})` },
+        { key: 'all', label: `ทั้งหมด (${stats.total || 0})` },
+        { key: 'pending_inspection', label: `ยังไม่ได้ออกตรวจ (${stats.pending_inspection || 0})` },
+        { key: 'inspected', label: `ออกตรวจแล้ว รอพิมพ์ (${stats.inspected_not_printed || 0})` },
+        { key: 'completed', label: `พิมพ์ใบอนุญาตแล้ว (${stats.completed || 0})` },
     ];
 
     return (
@@ -45,20 +48,31 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
             <Head title="สถานะกิจการ" />
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <Card className="border-slate-200 shadow-sm">
-                    <CardContent className="pt-5">
-                        <div className="text-2xl font-bold text-slate-900">{stats.total}</div>
-                        <div className="text-xs text-slate-500 mt-1 font-medium">รายการทั้งหมดที่รอพิมพ์</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <Card
+                    onClick={() => handleStatusFilter('all')}
+                    className={`cursor-pointer transition border shadow-xs hover:border-slate-400 ${
+                        activeStatus === 'all' ? 'ring-2 ring-slate-800 border-slate-800' : 'border-slate-200'
+                    }`}
+                >
+                    <CardContent className="pt-5 pb-4">
+                        <div className="text-2xl font-bold text-slate-900">{stats.total || 0}</div>
+                        <div className="text-xs text-slate-500 mt-1 font-medium">กิจการทั้งหมดในระบบ</div>
                         <div className="mt-2 w-full h-1 bg-slate-100 rounded-full">
                             <div className="h-1 bg-slate-400 rounded-full" style={{ width: '100%' }} />
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="border-orange-100 shadow-sm">
-                    <CardContent className="pt-5">
-                        <div className="text-2xl font-bold text-orange-700">{stats.pending_inspection}</div>
-                        <div className="text-xs text-orange-600 mt-1 font-medium">ยังไม่ได้ออกตรวจ</div>
+
+                <Card
+                    onClick={() => handleStatusFilter('pending_inspection')}
+                    className={`cursor-pointer transition border shadow-xs hover:border-orange-400 ${
+                        activeStatus === 'pending_inspection' ? 'ring-2 ring-orange-500 border-orange-500' : 'border-orange-100'
+                    }`}
+                >
+                    <CardContent className="pt-5 pb-4">
+                        <div className="text-2xl font-bold text-orange-700">{stats.pending_inspection || 0}</div>
+                        <div className="text-xs text-orange-600 mt-1 font-medium">ยังไม่ได้ออกตรวจ (รอตรวจ)</div>
                         <div className="mt-2 w-full h-1 bg-orange-100 rounded-full">
                             <div
                                 className="h-1 bg-orange-400 rounded-full"
@@ -67,14 +81,38 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
                         </div>
                     </CardContent>
                 </Card>
-                <Card className="border-emerald-100 shadow-sm">
-                    <CardContent className="pt-5">
-                        <div className="text-2xl font-bold text-emerald-700">{stats.inspected_not_printed}</div>
-                        <div className="text-xs text-emerald-600 mt-1 font-medium">ออกตรวจแล้ว รอพิมพ์</div>
+
+                <Card
+                    onClick={() => handleStatusFilter('inspected')}
+                    className={`cursor-pointer transition border shadow-xs hover:border-blue-400 ${
+                        activeStatus === 'inspected' ? 'ring-2 ring-blue-500 border-blue-500' : 'border-blue-100'
+                    }`}
+                >
+                    <CardContent className="pt-5 pb-4">
+                        <div className="text-2xl font-bold text-blue-700">{stats.inspected_not_printed || 0}</div>
+                        <div className="text-xs text-blue-600 mt-1 font-medium">ออกตรวจแล้ว รอพิมพ์ใบ อภ.๒</div>
+                        <div className="mt-2 w-full h-1 bg-blue-100 rounded-full">
+                            <div
+                                className="h-1 bg-blue-500 rounded-full"
+                                style={{ width: stats.total > 0 ? `${(stats.inspected_not_printed / stats.total) * 100}%` : '0%' }}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card
+                    onClick={() => handleStatusFilter('completed')}
+                    className={`cursor-pointer transition border shadow-xs hover:border-emerald-400 ${
+                        activeStatus === 'completed' ? 'ring-2 ring-emerald-500 border-emerald-500' : 'border-emerald-100'
+                    }`}
+                >
+                    <CardContent className="pt-5 pb-4">
+                        <div className="text-2xl font-bold text-emerald-700">{stats.completed || 0}</div>
+                        <div className="text-xs text-emerald-600 mt-1 font-medium">พิมพ์ใบอนุญาตแล้ว (เสร็จสิ้น)</div>
                         <div className="mt-2 w-full h-1 bg-emerald-100 rounded-full">
                             <div
                                 className="h-1 bg-emerald-500 rounded-full"
-                                style={{ width: stats.total > 0 ? `${(stats.inspected_not_printed / stats.total) * 100}%` : '0%' }}
+                                style={{ width: stats.total > 0 ? `${(stats.completed / stats.total) * 100}%` : '0%' }}
                             />
                         </div>
                     </CardContent>
@@ -131,15 +169,24 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
             {businesses.data.length === 0 ? (
                 <Card className="border-slate-200 shadow-sm">
                     <CardContent className="py-16 text-center">
-                        <div className="text-slate-400 text-sm font-medium">ไม่พบรายการที่รอพิมพ์ใบ อภ.๒</div>
-                        <div className="text-slate-400 text-xs mt-1">สถานประกอบการทั้งหมดพิมพ์ใบอนุญาตเรียบร้อยแล้ว</div>
+                        <div className="text-slate-500 text-sm font-semibold">ไม่พบรายการสถานประกอบการ</div>
+                        <div className="text-slate-400 text-xs mt-1">
+                            {activeStatus === 'pending_inspection' && 'ไม่มีกิจการที่รอการออกตรวจสุขลักษณะ'}
+                            {activeStatus === 'inspected' && 'ไม่มีกิจการที่รอพิมพ์ใบ อภ.๒'}
+                            {activeStatus === 'completed' && 'ยังไม่มีกิจการที่พิมพ์ใบอนุญาตเสร็จสิ้น'}
+                            {activeStatus === 'all' && 'ไม่มีข้อมูลสถานประกอบการตรงตามเงื่อนไขที่ค้นหา'}
+                        </div>
                     </CardContent>
                 </Card>
             ) : (
                 <div className="space-y-4">
                     {businesses.data.map((business) => {
                         const latestLic = business.licenses?.[0];
-                        const latestInsp = business.inspection_records?.[0];
+                        const isPendingInspection = business.inspection_status === 'pending' ||
+                            business.workflow_status === 'pending_inspection' ||
+                            business.workflow_status === 'pending_request';
+                        const isCompleted = business.workflow_status === 'completed' ||
+                            (latestLic && latestLic.is_printed);
 
                         return (
                             <Card
@@ -164,6 +211,12 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
                                                 />
                                                 {latestLic && (
                                                     <StatusBadge status={latestLic.status} expireDate={latestLic.expire_date} />
+                                                )}
+                                                {isCompleted && (
+                                                    <span className="text-xs px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium border border-emerald-200 flex items-center gap-1">
+                                                        <CheckCircle2 className="w-3.5 h-3.5" />
+                                                        พิมพ์แล้ว
+                                                    </span>
                                                 )}
                                             </div>
 
@@ -197,10 +250,10 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
                                                         </div>
                                                     </>
                                                 )}
-                                                {business.inspection_status === 'pending' && (
+                                                {isPendingInspection && (
                                                     <div className="sm:col-span-2 lg:col-span-3 mt-1">
-                                                        <span className="inline-block text-xs text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-3 py-1 font-normal">
-                                                            กิจการลงทะเบียนใหม่ ยังไม่ผ่านการออกตรวจสุขลักษณะ — กรุณานัดหมายออกตรวจก่อนออกใบอนุญาต
+                                                        <span className="inline-block text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 font-normal">
+                                                            📌 กิจการยังไม่ได้ออกตรวจสุขลักษณะ — กรุณากดปุ่ม <strong>"ออกตรวจสุขลักษณะ"</strong> เพื่อบันทึกผลการตรวจและออกใบอนุญาต
                                                         </span>
                                                     </div>
                                                 )}
@@ -209,28 +262,52 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
 
                                         {/* Right: Action Buttons */}
                                         <div className="flex flex-wrap md:flex-col gap-2 md:min-w-[170px] md:items-stretch shrink-0">
-                                            <Link
-                                                href={`/documents/preview/${business.business_id}`}
-                                                className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-normal transition shadow-xs"
-                                            >
-                                                <Printer className="w-4 h-4" />
-                                                <span>พิมพ์ใบ อภ.๒</span>
-                                            </Link>
-                                            <a
-                                                href={`/documents/aph2/${business.business_id}/word`}
-                                                className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-normal border border-slate-200 transition"
-                                            >
-                                                <FileDown className="w-4 h-4" />
-                                                <span>ดาวน์โหลด Word</span>
-                                            </a>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleMarkPrinted(business.business_id)}
-                                                className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-normal border border-slate-200 transition"
-                                            >
-                                                <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                                                <span>พิมพ์เรียบร้อยแล้ว</span>
-                                            </button>
+                                            {isPendingInspection ? (
+                                                <>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setSelectedBusinessForInspection(business)}
+                                                        className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-medium transition shadow-xs"
+                                                    >
+                                                        <ClipboardCheck className="w-4 h-4" />
+                                                        <span>ออกตรวจสุขลักษณะ</span>
+                                                    </button>
+                                                    <Link
+                                                        href={`/businesses/${business.business_id}`}
+                                                        className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-normal border border-slate-200 transition"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                        <span>ดูข้อมูลร้าน</span>
+                                                    </Link>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Link
+                                                        href={`/documents/preview/${business.business_id}`}
+                                                        className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-normal transition shadow-xs"
+                                                    >
+                                                        <Printer className="w-4 h-4" />
+                                                        <span>{isCompleted ? 'พิมพ์ใบ อภ.๒ ซ้ำ' : 'พิมพ์ใบ อภ.๒'}</span>
+                                                    </Link>
+                                                    <a
+                                                        href={`/documents/aph2/${business.business_id}/word`}
+                                                        className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-normal border border-slate-200 transition"
+                                                    >
+                                                        <FileDown className="w-4 h-4" />
+                                                        <span>ดาวน์โหลด Word</span>
+                                                    </a>
+                                                    {!isCompleted && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleMarkPrinted(business.business_id)}
+                                                            className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-normal border border-slate-200 transition"
+                                                        >
+                                                            <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                                                            <span>พิมพ์เรียบร้อยแล้ว</span>
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 </CardContent>
@@ -246,7 +323,16 @@ export default function PendingPrintIndex({ businesses, filters, stats }) {
                     <Pagination links={businesses.links} />
                 </div>
             )}
+
+            {/* Inspection Record Modal for Pending Inspection */}
+            {selectedBusinessForInspection && (
+                <InspectionRecordModal
+                    isOpen={true}
+                    onClose={() => setSelectedBusinessForInspection(null)}
+                    business={selectedBusinessForInspection}
+                    rounds={rounds}
+                />
+            )}
         </AuthenticatedLayout>
     );
 }
-

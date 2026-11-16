@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Business;
+use App\Models\InspectionRound;
 use App\Models\License;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -10,12 +11,15 @@ use Inertia\Inertia;
 class PendingPrintController extends Controller
 {
     /**
-     * รายการสถานประกอบการที่ยังไม่ได้พิมพ์ใบ อภ.๒
-     * หมายถึง: ใบอนุญาต active ที่ is_printed = false
+     * แสดงรายการสถานะกิจการ
+     * - ทั้งหมด: กิจการทุกแห่งในระบบ
+     * - ยังไม่ได้ออกตรวจ (รอตรวจ): pending_inspection หรือ inspection_status = 'pending'
+     * - ออกตรวจแล้ว รอพิมพ์ใบ อภ.๒: pending_print หรือออกตรวจแล้วแต่ยังไม่พิมพ์
+     * - พิมพ์ใบอนุญาตแล้ว (เสร็จสิ้น): completed หรือ active + is_printed
      */
     public function index(Request $request)
     {
-        $filterStatus = $request->query('status', 'all'); // 'all' | 'pending_inspection' | 'inspected'
+        $filterStatus = $request->query('status', 'all'); // 'all' | 'pending_inspection' | 'inspected' | 'completed'
         $search = trim($request->query('q', ''));
 
         $query = Business::with([
@@ -23,37 +27,61 @@ class PendingPrintController extends Controller
             'category',
             'licenses' => fn($q) => $q->latest('expire_date'),
             'inspectionRecords.round',
-        ])
-        ->whereHas('licenses', fn($q) => $q->where('is_printed', false)->where('status', 'active'));
+        ]);
 
         if ($filterStatus === 'pending_inspection') {
-            $query->where('inspection_status', 'pending');
+            $query->where(function ($q) {
+                $q->where('inspection_status', 'pending')
+                  ->orWhere('workflow_status', 'pending_inspection')
+                  ->orWhere('workflow_status', 'pending_request');
+            });
         } elseif ($filterStatus === 'inspected') {
-            $query->where('inspection_status', 'inspected');
+            $query->where(function ($q) {
+                $q->where('workflow_status', 'pending_print')
+                  ->orWhere(function ($sq) {
+                      $sq->where('inspection_status', 'inspected')
+                         ->whereHas('licenses', fn($lq) => $lq->where('is_printed', false));
+                  });
+            });
+        } elseif ($filterStatus === 'completed') {
+            $query->where(function ($q) {
+                $q->where('workflow_status', 'completed')
+                  ->orWhereHas('licenses', fn($lq) => $lq->where('is_printed', true)->where('status', 'active'));
+            });
         }
 
         if (!empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('shop_name', 'like', "%{$search}%")
+                  ->orWhere('operation_type', 'like', "%{$search}%")
                   ->orWhereHas('owner', fn($oq) => $oq->where('owner_name', 'like', "%{$search}%")
                       ->orWhere('citizen_id', 'like', "%{$search}%"));
             });
         }
 
-        $businesses = $query->latest()->paginate(20)->withQueryString();
+        $businesses = $query->latest('updated_at')->paginate(20)->withQueryString();
 
-        // สรุปสถิติ
-        $totalPending = Business::whereHas(
-            'licenses', fn($q) => $q->where('is_printed', false)->where('status', 'active')
-        )->count();
+        // สรุปสถิติตามสถานะจริง
+        $totalBusinesses = Business::count();
 
-        $pendingInspection = Business::whereHas(
-            'licenses', fn($q) => $q->where('is_printed', false)->where('status', 'active')
-        )->where('inspection_status', 'pending')->count();
+        $pendingInspection = Business::where(function ($q) {
+            $q->where('inspection_status', 'pending')
+              ->orWhere('workflow_status', 'pending_inspection')
+              ->orWhere('workflow_status', 'pending_request');
+        })->count();
 
-        $inspectedNotPrinted = Business::whereHas(
-            'licenses', fn($q) => $q->where('is_printed', false)->where('status', 'active')
-        )->where('inspection_status', 'inspected')->count();
+        $inspectedNotPrinted = Business::where(function ($q) {
+            $q->where('workflow_status', 'pending_print')
+              ->orWhere(function ($sq) {
+                  $sq->where('inspection_status', 'inspected')
+                     ->whereHas('licenses', fn($lq) => $lq->where('is_printed', false));
+              });
+        })->count();
+
+        $completed = Business::where(function ($q) {
+            $q->where('workflow_status', 'completed')
+              ->orWhereHas('licenses', fn($lq) => $lq->where('is_printed', true)->where('status', 'active'));
+        })->count();
 
         return Inertia::render('PendingPrint/Index', [
             'businesses' => $businesses,
@@ -62,10 +90,12 @@ class PendingPrintController extends Controller
                 'status' => $filterStatus,
             ],
             'stats' => [
-                'total' => $totalPending,
+                'total' => $totalBusinesses,
                 'pending_inspection' => $pendingInspection,
                 'inspected_not_printed' => $inspectedNotPrinted,
+                'completed' => $completed,
             ],
+            'rounds' => InspectionRound::orderBy('inspection_date', 'desc')->get(),
         ]);
     }
 
@@ -77,14 +107,19 @@ class PendingPrintController extends Controller
         $license = License::where('business_id', $businessId)
             ->where('status', 'active')
             ->latest('expire_date')
-            ->firstOrFail();
+            ->first();
 
-        $license->update([
-            'is_printed' => true,
-            'printed_at' => now(),
+        if ($license) {
+            $license->update([
+                'is_printed' => true,
+                'printed_at' => now(),
+            ]);
+        }
+
+        Business::where('business_id', $businessId)->update([
+            'workflow_status' => 'completed',
         ]);
 
-        return back()->with('success', 'บันทึกสถานะพิมพ์ใบ อภ.๒ เรียบร้อยแล้ว');
+        return back()->with('success', 'บันทึกสถานะพิมพ์ใบ อภ.๒ เรียบร้อยแล้ว (สถานะเปลี่ยนเป็นเสร็จสิ้น)');
     }
 }
-
