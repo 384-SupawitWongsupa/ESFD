@@ -102,7 +102,7 @@ class InspectionController extends Controller
 
         DB::transaction(function () use ($validated, $fileUrl, $roundId) {
             // บันทึกหรืออัปเดตผลการตรวจในรอบนี้ (ป้องกันบันทึกซ้ำตาม Unique Constraint)
-            InspectionRecord::updateOrCreate(
+            $record = InspectionRecord::updateOrCreate(
                 [
                     'round_id' => $roundId,
                     'business_id' => $validated['business_id'],
@@ -114,6 +114,7 @@ class InspectionController extends Controller
                     'notes' => $validated['notes'] ?? null,
                 ]
             );
+            $record->touch(); // อัปเดตเวลาล่าสุดเสมอ เพื่อให้ขึ้นอันดับแรกในแดชบอร์ดทันที
 
             // อัปเดตสถานะการออกตรวจและขั้นตอนของสถานประกอบการ
             Business::where('business_id', $validated['business_id'])
@@ -121,14 +122,15 @@ class InspectionController extends Controller
                     'inspection_status' => 'inspected',
                     'workflow_status' => 'pending_print',
                 ]);
+            Business::find($validated['business_id'])?->touch();
 
             // คำนวณวันหมดอายุใหม่ล่วงหน้า 1 ปี
             $receiptDate = !empty($validated['receipt_date']) ? Carbon::parse($validated['receipt_date']) : Carbon::today();
             $newExpireDate = $receiptDate->copy()->addYear();
 
-            // ทำเครื่องหมายใบอนุญาตเก่าเป็น renewed
+            // ทำเครื่องหมายใบอนุญาตเก่าทั้งหมดของธุรกิจนี้เป็น renewed (ทั้ง active และ expired)
             License::where('business_id', $validated['business_id'])
-                ->where('status', 'active')
+                ->whereIn('status', ['active', 'expired'])
                 ->update(['status' => 'renewed']);
 
             // สร้างรายการใบอนุญาตใหม่

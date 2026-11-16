@@ -23,7 +23,9 @@ export default function Dashboard({
     selectedRound = 'all',
     selectedCategory = 'all',
     recentInspections = [],
+    recentBusinesses = [],
 }) {
+    const [recentTab, setRecentTab] = React.useState('inspections'); // 'inspections' | 'businesses'
     const handleFilterChange = (round, category) => {
         router.get('/', {
             round: round !== undefined ? round : selectedRound,
@@ -128,6 +130,11 @@ export default function Dashboard({
                         <div className="mt-3 text-sm font-normal text-slate-500">
                             ผู้ประกอบการในพื้นที่: <span className="font-normal text-slate-800">{metrics.totalOwners} ราย</span>
                         </div>
+                        {metrics.unlicensedCount > 0 && (
+                            <div className="mt-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-2.5 py-1 inline-flex items-center gap-1 border border-amber-200">
+                                <span>ลงทะเบียนใหม่/รอออกคำขอ: {metrics.unlicensedCount} แห่ง</span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -239,48 +246,116 @@ export default function Dashboard({
                     <ResultLevelChart levels={resultLevels || {}} />
                 </ChartCard>
 
-                {/* รายการออกตรวจสุขลักษณะล่าสุด */}
+                {/* รายการเคลื่อนไหวล่าสุด (ออกตรวจ/ต่ออายุ และ ลงทะเบียนใหม่) */}
                 <ChartCard
-                    title="บันทึกผลการออกตรวจล่าสุด"
+                    title="ความเคลื่อนไหวล่าสุด"
                     aside={
-                        <Link href="/inspections" className="text-sm text-emerald-700 hover:text-emerald-800 font-normal underline">
-                            ดูทั้งหมด
-                        </Link>
+                        <div className="flex items-center gap-2">
+                            <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200 text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => setRecentTab('inspections')}
+                                    className={`px-2.5 py-1 rounded-md transition ${
+                                        recentTab === 'inspections'
+                                            ? 'bg-white text-emerald-800 shadow-xs font-bold'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                >
+                                    ออกตรวจ/ต่ออายุ
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRecentTab('businesses')}
+                                    className={`px-2.5 py-1 rounded-md transition ${
+                                        recentTab === 'businesses'
+                                            ? 'bg-white text-emerald-800 shadow-xs font-bold'
+                                            : 'text-slate-600 hover:text-slate-900'
+                                    }`}
+                                >
+                                    ลงทะเบียนใหม่
+                                </button>
+                            </div>
+                            <Link href={recentTab === 'inspections' ? '/inspections' : '/search'} className="text-xs text-emerald-700 hover:text-emerald-800 font-normal underline">
+                                ดูทั้งหมด
+                            </Link>
+                        </div>
                     }
                 >
                     <div className="space-y-3">
-                        {recentInspections && recentInspections.length > 0 ? (
-                            recentInspections.map((rec) => (
-                                <div
-                                    key={rec.record_id}
-                                    className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/60 transition flex items-center justify-between gap-3 text-sm"
-                                >
-                                    <div className="min-w-0">
-                                        <div className="font-bold text-slate-900 truncate">
-                                            {rec.business?.shop_name || 'ไม่มีชื่อร้าน'}
+                        {recentTab === 'inspections' ? (
+                            recentInspections && recentInspections.length > 0 ? (
+                                recentInspections.map((rec) => (
+                                    <div
+                                        key={rec.record_id}
+                                        className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/60 transition flex items-center justify-between gap-3 text-sm"
+                                    >
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-slate-900 truncate">
+                                                {rec.business?.shop_name || 'ไม่มีชื่อร้าน'}
+                                            </div>
+                                            <div className="text-xs font-normal text-slate-500 truncate mt-0.5">
+                                                ผู้ประกอบการ: {rec.business?.owner?.owner_name}
+                                            </div>
+                                            <div className="text-xs font-normal text-emerald-700 mt-0.5 flex items-center gap-1.5">
+                                                <span>รอบ: {rec.round?.round_name}</span>
+                                                <span className="text-slate-400">•</span>
+                                                <span className="text-slate-500">
+                                                    {rec.updated_at ? new Date(rec.updated_at).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) : ''}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="text-xs font-normal text-slate-500 truncate mt-0.5">
-                                            {rec.business?.owner?.owner_name}
-                                        </div>
-                                        <div className="text-xs font-normal text-emerald-700 mt-0.5">
-                                            รอบ: {rec.round?.round_name}
+                                        <div className="shrink-0 text-right">
+                                            <Link
+                                                href={`/documents/preview/${rec.business_id}`}
+                                                title="พิมพ์ใบอนุญาต (อภ.๒)"
+                                                className="p-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition shadow-2xs inline-flex items-center justify-center"
+                                            >
+                                                <Printer className="w-4 h-4" />
+                                            </Link>
                                         </div>
                                     </div>
-                                    <div className="shrink-0 text-right">
-                                        <Link
-                                            href={`/documents/preview/${rec.business_id}`}
-                                            title="พิมพ์ใบอนุญาต (อภ.๒)"
-                                            className="p-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white transition shadow-2xs inline-flex items-center justify-center"
-                                        >
-                                            <Printer className="w-4 h-4" />
-                                        </Link>
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-12 text-center text-sm font-normal text-slate-400">
+                                    ยังไม่มีข้อมูลผลการตรวจหรือต่ออายุล่าสุด
                                 </div>
-                            ))
+                            )
                         ) : (
-                            <div className="py-12 text-center text-sm font-normal text-slate-400">
-                                ยังไม่มีข้อมูลผลการตรวจล่าสุด
-                            </div>
+                            recentBusinesses && recentBusinesses.length > 0 ? (
+                                recentBusinesses.map((b) => (
+                                    <div
+                                        key={b.business_id}
+                                        className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 hover:bg-slate-100/60 transition flex items-center justify-between gap-3 text-sm"
+                                    >
+                                        <div className="min-w-0">
+                                            <div className="font-bold text-slate-900 truncate">
+                                                {b.shop_name || 'ไม่มีชื่อร้าน'}
+                                            </div>
+                                            <div className="text-xs font-normal text-slate-500 truncate mt-0.5">
+                                                เจ้าของ: {b.owner?.owner_name} ({b.category?.category_name || '-'})
+                                            </div>
+                                            <div className="text-xs mt-0.5">
+                                                <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px]">
+                                                    {b.workflow_status === 'pending_request' ? 'รอออกใบคำขอ' : (b.workflow_status === 'pending_inspection' ? 'รอออกตรวจ' : 'ลงทะเบียนแล้ว')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0 text-right">
+                                            <Link
+                                                href={`/businesses/${b.business_id}`}
+                                                title="ดูรายละเอียดร้าน"
+                                                className="py-1.5 px-3 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs transition inline-flex items-center"
+                                            >
+                                                ดูข้อมูล
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="py-12 text-center text-sm font-normal text-slate-400">
+                                    ยังไม่มีสถานประกอบการที่ลงทะเบียนใหม่
+                                </div>
+                            )
                         )}
                     </div>
                 </ChartCard>

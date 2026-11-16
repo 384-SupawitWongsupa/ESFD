@@ -21,56 +21,55 @@ class DashboardController extends Controller
         $selectedRound = $request->query('round', 'all');
         $selectedCategory = $request->query('category', 'all');
 
-        // Query หลักของสถานประกอบการ
-        $query = Business::with(['owner', 'category', 'licenses' => function ($q) {
-            $q->latest('expire_date');
-        }, 'inspectionRecords.round']);
+        // Query พื้นฐานของสถานประกอบการตามตัวกรองที่เลือก
+        $baseQuery = Business::query();
 
         if ($selectedCategory !== 'all') {
-            $query->where('category_id', $selectedCategory);
+            $baseQuery->where('category_id', $selectedCategory);
         }
 
         if ($selectedRound !== 'all') {
-            $query->whereHas('inspectionRecords', function ($q) use ($selectedRound) {
+            $baseQuery->whereHas('inspectionRecords', function ($q) use ($selectedRound) {
                 $q->where('round_id', $selectedRound);
             });
         }
 
-        $allBusinesses = $query->get();
-
-        // คำนวณสถิติ — นับจากใบอนุญาตล่าสุดของแต่ละธุรกิจเท่านั้น
-        $totalBusinesses = Business::count();
-        $totalOwners = \App\Models\Owner::count();
+        // คำนวณสถิติ — นับจากใบอนุญาตล่าสุดของแต่ละธุรกิจตามตัวกรองแบบเรียลไทม์
+        $totalBusinesses = (clone $baseQuery)->count();
+        $totalOwners = (clone $baseQuery)->distinct('owner_id')->count('owner_id');
 
         // ใบอนุญาตที่หมดอายุแล้ว (ใบล่าสุดเท่านั้น)
-        $expiredCount = Business::whereHas('latestLicense', fn ($q) =>
+        $expiredCount = (clone $baseQuery)->whereHas('latestLicense', fn ($q) =>
             $q->where(fn ($sq) => $sq->where('expire_date', '<', $today)->orWhere('status', 'expired'))
         )->count();
 
         // ใกล้หมดอายุ ภายใน 90 วัน (ใบล่าสุด)
-        $expiringCount = Business::whereHas('latestLicense', fn ($q) =>
+        $expiringCount = (clone $baseQuery)->whereHas('latestLicense', fn ($q) =>
             $q->where('expire_date', '>=', $today)
               ->where('expire_date', '<=', $in90Days)
               ->whereNotIn('status', ['expired'])
         )->count();
 
         // ปกติ > 90 วัน (ใบล่าสุด)
-        $activeCount = Business::whereHas('latestLicense', fn ($q) =>
+        $activeCount = (clone $baseQuery)->whereHas('latestLicense', fn ($q) =>
             $q->where('expire_date', '>', $in90Days)
               ->whereNotIn('status', ['expired'])
         )->count();
 
-        // 4 Stages Totals (Workflow)
-        $pendingRequestCount = Business::where('workflow_status', 'pending_request')->count();
-        $pendingInspectionCount = Business::where('workflow_status', 'pending_inspection')->count();
-        $pendingPrintCount = Business::where('workflow_status', 'pending_print')->count();
-        $completedCount = Business::where('workflow_status', 'completed')->count();
+        // กิจการที่เพิ่งลงทะเบียนใหม่ / ยังไม่มีใบอนุญาต
+        $unlicensedCount = (clone $baseQuery)->doesntHave('licenses')->count();
 
-        // Fallback หากข้อมูลยังไม่มีการระบุ ให้กระจายตามข้อมูลสถานะจริง
+        // 4 ขั้นตอนการทำงาน (Workflow Stages)
+        $pendingRequestCount = (clone $baseQuery)->where('workflow_status', 'pending_request')->count();
+        $pendingInspectionCount = (clone $baseQuery)->where('workflow_status', 'pending_inspection')->count();
+        $pendingPrintCount = (clone $baseQuery)->where('workflow_status', 'pending_print')->count();
+        $completedCount = (clone $baseQuery)->where('workflow_status', 'completed')->count();
+
+        // กรณีข้อมูล workflow ยังไม่ครบ ให้คำนวณตามสถานะจริง
         if ($pendingRequestCount + $pendingInspectionCount + $pendingPrintCount + $completedCount === 0 && $totalBusinesses > 0) {
-            $completedCount = $activeCount;
-            $pendingPrintCount = License::where('is_printed', false)->count();
-            $pendingInspectionCount = Business::where('inspection_status', 'uninspected')->count();
+            $completedCount = (clone $baseQuery)->whereHas('licenses', fn ($q) => $q->where('is_printed', true)->where('status', 'active'))->count();
+            $pendingPrintCount = (clone $baseQuery)->whereHas('licenses', fn ($q) => $q->where('is_printed', false)->where('status', 'active'))->count();
+            $pendingInspectionCount = (clone $baseQuery)->where('inspection_status', 'pending')->count();
             $pendingRequestCount = max(0, $totalBusinesses - ($completedCount + $pendingPrintCount + $pendingInspectionCount));
         }
 
@@ -84,14 +83,19 @@ class DashboardController extends Controller
 
         // สถิติแยกตามหมวดหมู่แบบละเอียด (สำหรับ G2 และ G3)
         $categories = BusinessCategory::withCount('businesses')->get();
-        $categoryData = $categories->map(function ($cat) {
+        $categoryData = $categories->map(function ($cat) use ($selectedRound) {
             $catId = $cat->category_id;
-            $total = $cat->businesses_count;
+            
+            $catQuery = Business::where('category_id', $catId);
+            if ($selectedRound !== 'all') {
+                $catQuery->whereHas('inspectionRecords', fn ($q) => $q->where('round_id', $selectedRound));
+            }
+            $total = (clone $catQuery)->count();
 
-            $completed = Business::where('category_id', $catId)->where('workflow_status', 'completed')->count();
-            $pendingPrint = Business::where('category_id', $catId)->where('workflow_status', 'pending_print')->count();
-            $pendingInspection = Business::where('category_id', $catId)->where('workflow_status', 'pending_inspection')->count();
-            $pendingRequest = Business::where('category_id', $catId)->where('workflow_status', 'pending_request')->count();
+            $completed = (clone $catQuery)->where('workflow_status', 'completed')->count();
+            $pendingPrint = (clone $catQuery)->where('workflow_status', 'pending_print')->count();
+            $pendingInspection = (clone $catQuery)->where('workflow_status', 'pending_inspection')->count();
+            $pendingRequest = (clone $catQuery)->where('workflow_status', 'pending_request')->count();
 
             // คำนวณอัตราความคืบหน้า (ตรวจผ่านแล้ว + ออกใบอนุญาตแล้ว)
             $progressed = $completed + $pendingPrint;
@@ -119,25 +123,29 @@ class DashboardController extends Controller
             ];
         });
 
-        $categoryStats = $categories->map(function ($cat) {
+        $categoryStats = $categories->map(function ($cat) use ($selectedRound) {
+            $catQuery = Business::where('category_id', $cat->category_id);
+            if ($selectedRound !== 'all') {
+                $catQuery->whereHas('inspectionRecords', fn ($q) => $q->where('round_id', $selectedRound));
+            }
             return [
                 'name' => $cat->category_name,
-                'count' => $cat->businesses_count,
+                'count' => $catQuery->count(),
             ];
         });
 
         // สถิติตามระยะเวลาหมดอายุ 5 ระดับ (สำหรับ G4 ResultLevelChart) — ใบล่าสุดเท่านั้น
-        $d30 = Business::whereHas('latestLicense', fn ($q) =>
+        $d30 = (clone $baseQuery)->whereHas('latestLicense', fn ($q) =>
             $q->whereBetween('expire_date', [$today, Carbon::today()->addDays(30)])
               ->whereNotIn('status', ['expired'])
         )->count();
 
-        $d60 = Business::whereHas('latestLicense', fn ($q) =>
+        $d60 = (clone $baseQuery)->whereHas('latestLicense', fn ($q) =>
             $q->whereBetween('expire_date', [Carbon::today()->addDays(31), Carbon::today()->addDays(60)])
               ->whereNotIn('status', ['expired'])
         )->count();
 
-        $d90 = Business::whereHas('latestLicense', fn ($q) =>
+        $d90 = (clone $baseQuery)->whereHas('latestLicense', fn ($q) =>
             $q->whereBetween('expire_date', [Carbon::today()->addDays(61), $in90Days])
               ->whereNotIn('status', ['expired'])
         )->count();
@@ -161,9 +169,26 @@ class DashboardController extends Controller
         // รอบการออกตรวจทั้งหมด
         $rounds = InspectionRound::orderBy('inspection_date', 'desc')->get();
 
-        // การออกตรวจล่าสุด 5 รายการ
-        $recentInspections = InspectionRecord::with(['business.owner', 'round'])
-            ->latest()
+        // 1. การออกตรวจ/ต่ออายุล่าสุด 5 รายการ (เรียงตามการบันทึกล่าสุด updated_at)
+        $recentInspectionsQuery = InspectionRecord::with(['business.owner', 'round']);
+        if ($selectedRound !== 'all') {
+            $recentInspectionsQuery->where('round_id', $selectedRound);
+        }
+        if ($selectedCategory !== 'all') {
+            $recentInspectionsQuery->whereHas('business', fn ($bq) => $bq->where('category_id', $selectedCategory));
+        }
+        $recentInspections = $recentInspectionsQuery
+            ->orderByDesc('updated_at')
+            ->take(5)
+            ->get();
+
+        // 2. สถานประกอบการที่ลงทะเบียนใหม่ล่าสุด 5 รายการ
+        $recentBusinessesQuery = Business::with(['owner', 'category', 'latestLicense']);
+        if ($selectedCategory !== 'all') {
+            $recentBusinessesQuery->where('category_id', $selectedCategory);
+        }
+        $recentBusinesses = $recentBusinessesQuery
+            ->latest('created_at')
             ->take(5)
             ->get();
 
@@ -174,6 +199,7 @@ class DashboardController extends Controller
                 'expiredCount' => $expiredCount,
                 'expiringCount' => $expiringCount,
                 'activeCount' => $activeCount,
+                'unlicensedCount' => $unlicensedCount,
                 'pendingRequestCount' => $pendingRequestCount,
                 'pendingInspectionCount' => $pendingInspectionCount,
                 'pendingPrintCount' => $pendingPrintCount,
@@ -189,7 +215,7 @@ class DashboardController extends Controller
             'selectedRound' => $selectedRound,
             'selectedCategory' => $selectedCategory,
             'recentInspections' => $recentInspections,
+            'recentBusinesses' => $recentBusinesses,
         ]);
     }
 }
-

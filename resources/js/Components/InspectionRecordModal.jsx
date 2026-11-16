@@ -26,6 +26,20 @@ export default function InspectionRecordModal({ isOpen, onClose, business = null
     const isCreatingNewRound = data.round_id === 'new';
     const activeBusiness = business || businesses.find(b => String(b.business_id) === String(data.business_id)) || initialBiz;
 
+    // อัปเดตข้อมูลสถานประกอบการเมื่อมีการส่ง business เข้ามาใหม่
+    React.useEffect(() => {
+        if (business) {
+            const lic = business.licenses?.[0];
+            setData(prev => ({
+                ...prev,
+                business_id: business.business_id,
+                fee: lic?.fee ? String(lic.fee) : prev.fee,
+                receipt_book: lic?.receipt_book || prev.receipt_book || '',
+                receipt_no: lic?.receipt_no || prev.receipt_no || '',
+            }));
+        }
+    }, [business, isOpen]);
+
     // กู้คืนแบบร่างการตรวจของสถานประกอบการนี้ (ถ้ามี)
     React.useEffect(() => {
         if (!data.business_id) return;
