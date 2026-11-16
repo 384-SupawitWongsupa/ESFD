@@ -28,35 +28,106 @@ class DocumentService
     }
 
     /**
-     * สร้าง PDF ใบอนุญาต อภ.๒
+     * สร้าง PDF ใบอนุญาต อภ.๒ โดยใช้เทคนิค Coordinate Overlay บนเทมเพลตมาตรฐาน
+     * - หากไม่มีเงื่อนไขพิเศษ -> ใช้ aph2_template_base.pdf (template.pdf)
+     * - หากมีเงื่อนไขพิเศษ 1 ข้อ -> ใช้ aph2_template_4_3.pdf (template4.3.pdf)
+     * - หากมีเงื่อนไขพิเศษ 2 ข้อ -> ใช้ aph2_template_4_4.pdf (template4.4.pdf)
      */
-    public function generateAph2Pdf(Business $business)
+    public function generateAph2Pdf(Business $business, array $overrides = []): string
     {
-        $business->load(['owner', 'category', 'licenses' => function ($q) {
-            $q->latest('expire_date');
-        }, 'inspectionRecords' => function ($q) {
-            $q->latest('created_at');
-        }]);
+        $business->load(['owner', 'category', 'licenses', 'inspectionRecords']);
+        $latestLicense = $business->licenses->sortByDesc('expire_date')->first();
+        $latestInspection = $business->inspectionRecords->sortByDesc('created_at')->first();
 
-        $latestLicense = $business->licenses->first();
-        $latestInspection = $business->inspectionRecords->first();
+        $issueD = $latestLicense && $latestLicense->receipt_date 
+            ? Carbon::parse($latestLicense->receipt_date) 
+            : now();
 
-        $data = [
-            'business' => $business,
-            'owner' => $business->owner,
-            'license' => $latestLicense,
-            'inspection' => $latestInspection,
-            'issueDate' => $latestLicense && $latestLicense->receipt_date 
-                ? self::thaiDate($latestLicense->receipt_date) 
-                : self::thaiDate(now()),
-            'expireDate' => $latestLicense && $latestLicense->expire_date 
-                ? self::thaiDate($latestLicense->expire_date) 
-                : self::thaiDate(now()->addYear()),
+        $expireD = $latestLicense && $latestLicense->expire_date 
+            ? Carbon::parse($latestLicense->expire_date) 
+            : now()->addYear();
+
+        $thaiMonths = [
+            1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
+            5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
+            9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม'
         ];
 
-        $html = view('documents.aph2', $data)->render();
-        $pdf = Pdf::loadHTML($html)->setPaper('a4', 'portrait');
-        return $pdf;
+        $cond3 = $latestInspection->condition_4_3 ?? '';
+        $cond4 = $latestInspection->condition_4_4 ?? '';
+
+        $outputPath = tempnam(sys_get_temp_dir(), 'aph2_pdf_') . '.pdf';
+        $cfgPath = tempnam(sys_get_temp_dir(), 'aph2_cfg_') . '.json';
+
+        $data = [
+            'receipt_book' => $latestLicense->receipt_book ?? '-',
+            'receipt_no' => $latestLicense->receipt_no ?? '-',
+            'license_year' => (string)($expireD->year + 543),
+            'owner_name' => $business->owner->owner_name ?? '-',
+            'nationality' => 'ไทย',
+            'office_address' => $business->owner->office_address ?: $business->shop_address ?: '-',
+            'moo' => $business->owner->moo ?: $business->shop_moo ?: '-',
+            'subdistrict' => $business->owner->subdistrict ?: 'ดอยงาม',
+            'district' => $business->owner->district ?: 'พาน',
+            'province' => $business->owner->province ?: 'เชียงราย',
+            'id_card_or_juristic' => $business->owner->citizen_id ?: $business->owner->juristic_id ?: '-',
+            'phone' => $business->owner->phone ?: '-',
+            'shop_name' => $business->shop_name ?: 'ไม่มีชื่อทางการค้า',
+            'operation_type' => $business->operation_type ?: ($business->category->category_name ?? '-'),
+            'shop_address' => $business->shop_address ?: '-',
+            'shop_moo' => $business->shop_moo ?: '-',
+            'shop_subdistrict' => 'ดอยงาม',
+            'shop_district' => 'พาน',
+            'shop_province' => 'เชียงราย',
+            'shop_phone' => $business->shop_phone ?: $business->owner->phone ?: '-',
+            'fee' => (float)($latestLicense->fee ?? 0),
+            'receipt_info' => ($latestLicense && $latestLicense->receipt_book) 
+                ? "{$latestLicense->receipt_book}/{$latestLicense->receipt_no}" 
+                : '-',
+            'receipt_date' => $latestLicense && $latestLicense->receipt_date 
+                ? self::thaiDate($latestLicense->receipt_date) 
+                : self::thaiDate(now()),
+            'condition_4_3' => $cond3,
+            'condition_4_4' => $cond4,
+            'issue_day' => (string)$issueD->day,
+            'issue_month' => $thaiMonths[$issueD->month],
+            'issue_year' => (string)($issueD->year + 543),
+            'expire_day' => (string)$expireD->day,
+            'expire_month' => $thaiMonths[$expireD->month],
+            'expire_year' => (string)($expireD->year + 543),
+        ];
+
+        foreach ($overrides as $key => $value) {
+            if (array_key_exists($key, $data)) {
+                $data[$key] = $value;
+            }
+        }
+
+        file_put_contents($cfgPath, json_encode([
+            'output_path' => $outputPath,
+            'data' => $data,
+        ], JSON_UNESCAPED_UNICODE));
+
+        $scriptPath = base_path('scripts/generate_aph2_pdf.py');
+        $pythonExe = 'C:\\Python312\\python.exe';
+        $userSitePackages = 'C:\\Users\\bosss\\AppData\\Roaming\\Python\\Python312\\site-packages';
+        $process = new \Symfony\Component\Process\Process([$pythonExe, $scriptPath, $cfgPath]);
+        $process->setEnv([
+            'PYTHONPATH' => $userSitePackages,
+            'PATH'       => getenv('PATH') ?: '',
+        ]);
+        $process->setTimeout(60);
+        $process->run();
+
+        if (file_exists($cfgPath)) {
+            @unlink($cfgPath);
+        }
+
+        if (!$process->isSuccessful() || !file_exists($outputPath)) {
+            throw new \RuntimeException('Failed to generate APH2 PDF: ' . $process->getErrorOutput());
+        }
+
+        return $outputPath;
     }
 
     /**
@@ -120,7 +191,7 @@ class DocumentService
 
     /**
      * สร้าง PDF แบบคำขอรับใบอนุญาต/ต่อใบอนุญาต อ้างอิงตามแบบฟอร์ม app_template.pdf
-     * @param array $overrides  ข้อมูลที่ผู้ใช้แก้ไขจากหน้า preview (override default)
+     * @param array $overrides ข้อมูลที่ผู้ใช้แก้ไขจากหน้า preview (override default)
      */
     public function generateAppTemplatePdf(Business $business, array $overrides = []): string
     {
@@ -214,4 +285,3 @@ class DocumentService
         return $this->generateAppTemplatePdf($business);
     }
 }
-

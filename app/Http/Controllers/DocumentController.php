@@ -122,13 +122,26 @@ class DocumentController extends Controller
         ])->deleteFileAfterSend(true);
     }
 
-    public function aph2Pdf($businessId)
+    public function aph2Pdf(Request $request, $businessId)
     {
-        $business = Business::findOrFail($businessId);
-        $pdf = $this->docService->generateAph2Pdf($business);
+        $business = Business::with(['owner', 'category', 'licenses', 'inspectionRecords'])->findOrFail($businessId);
 
-        $filename = 'APH2_' . ($business->shop_name ?: $business->business_id) . '.pdf';
-        return $pdf->stream($filename);
+        $overrides = [];
+        $allowed = ['condition_4_3', 'condition_4_4', 'receipt_book', 'receipt_no', 'fee', 'owner_name', 'shop_name'];
+        foreach ($allowed as $k) {
+            if ($request->has($k)) {
+                $overrides[$k] = $request->input($k);
+            }
+        }
+
+        $filePath = $this->docService->generateAph2Pdf($business, $overrides);
+
+        $cleanName = preg_replace('/[^a-zA-Z0-9_\x{0E00}-\x{0E7F}]/u', '_', $business->shop_name ?: $business->business_id);
+        $filename = 'แบบ_อภ๒_' . $cleanName . '.pdf';
+        return response()->file($filePath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ])->deleteFileAfterSend(true);
     }
 
     public function aph2Word($businessId)
@@ -156,10 +169,9 @@ class DocumentController extends Controller
         if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
             foreach ($owner->businesses as $idx => $business) {
                 // สร้าง PDF อภ.๒
-                $pdf = $this->docService->generateAph2Pdf($business);
-                $pdfContent = $pdf->output();
+                $pdfPath = $this->docService->generateAph2Pdf($business);
                 $name = ($idx + 1) . '_แบบ_อภ๒_' . ($business->shop_name ?: $business->business_id) . '.pdf';
-                $zip->addFromString($name, $pdfContent);
+                $zip->addFile($pdfPath, $name);
 
                 // สร้าง PDF แบบคำขอ (app_template)
                 $pdfSthPath = $this->docService->generateAppTemplatePdf($business);

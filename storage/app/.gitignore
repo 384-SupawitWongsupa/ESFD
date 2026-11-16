@@ -2,5 +2,5 @@
 !private/
 !public/
 !templates/
-!templates/app_template.pdf
+!templates/*
 !.gitignore
