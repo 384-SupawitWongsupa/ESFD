@@ -877,8 +877,8 @@ export default function DocumentPreview({
                                         type="text"
                                         value={aph2Form.receipt_info}
                                         onChange={(e) => setAph2Form({ ...aph2Form, receipt_info: e.target.value })}
-                                        className="w-32 text-center font-semibold border-b border-dotted border-slate-800 outline-none px-1 py-0.5 focus:bg-emerald-50"
-                                        placeholder="เล่มที่/เลขที่"
+                                        className="w-44 text-center font-semibold border-b border-dotted border-slate-800 outline-none px-2 py-0.5 focus:bg-emerald-50 text-slate-900"
+                                        placeholder="เช่น RCPT-00277/68"
                                     />
                                     <span>ลงวันที่:</span>
                                     <input

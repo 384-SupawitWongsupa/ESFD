@@ -206,18 +206,11 @@ def generate_aph2_pdf(output_path, data):
         can.drawString(325.0, 468.6, str(fee_word))
 
     # 10. ตามใบเสร็จรับเงินเล่มที่ ... เลขที่ ... ลงวันที่ ...
-    receipt_info = data.get('receipt_info')
-    if receipt_info is None or receipt_info == '':
-        if book and book not in ['-', 'None', 'ว่าง']:
-            receipt_info = f"{book}/{no}" if no else book
-        elif no and no not in ['-', 'None']:
-            receipt_info = no
-        else:
-            receipt_info = ''
-    receipt_date_str = data.get('receipt_date') or ''
-    if receipt_info and str(receipt_info).strip() not in ['-', 'None']:
-        can.drawString(180.0, 449.8, to_thai_digits(receipt_info))
-    if receipt_date_str and str(receipt_date_str).strip() not in ['-', 'None']:
+    receipt_info = str(data.get('receipt_info') or '').strip()
+    receipt_date_str = str(data.get('receipt_date') or '').strip()
+    if receipt_info and receipt_info not in ['-', 'None', 'ว่าง']:
+        can.drawString(165.0, 449.8, to_thai_digits(receipt_info))
+    if receipt_date_str and receipt_date_str not in ['-', 'None']:
         can.drawString(360.0, 449.8, str(receipt_date_str))
 
     # 11. เงื่อนไขพิเศษ ๔.๓. และ ๔.๔. (ถ้ามี)

@@ -28,6 +28,44 @@ class DocumentService
     }
 
     /**
+     * แปลงจำนวนเงินเป็นตัวหนังสือภาษาไทย (Baht Text)
+     */
+    public static function bahtText($number): string
+    {
+        $number = (float)$number;
+        if ($number <= 0) {
+            return 'ศูนย์บาทถ้วน';
+        }
+        $digits = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+        $positions = ['', 'สิบ', 'ร้อย', 'พัน', 'หมื่น', 'แสน', 'ล้าน'];
+        
+        $intPart = (int)$number;
+        $str = (string)$intPart;
+        $len = strlen($str);
+        $res = '';
+        
+        for ($i = 0; $i < $len; $i++) {
+            $d = (int)$str[$i];
+            $pos = $len - $i - 1;
+            if ($d !== 0) {
+                if ($pos % 6 === 1 && $d === 1) {
+                    $res .= 'สิบ';
+                } elseif ($pos % 6 === 1 && $d === 2) {
+                    $res .= 'ยี่สิบ';
+                } elseif ($pos % 6 === 0 && $d === 1 && $len > 1 && $i > 0 && $str[$i - 1] !== '0') {
+                    $res .= 'เอ็ด';
+                } else {
+                    $res .= $digits[$d] . $positions[$pos % 6];
+                }
+            }
+            if ($pos % 6 === 0 && $pos > 0) {
+                $res .= 'ล้าน';
+            }
+        }
+        return $res . 'บาทถ้วน';
+    }
+
+    /**
      * สร้าง PDF ใบอนุญาต อภ.๒ โดยใช้เทคนิค Coordinate Overlay บนเทมเพลตมาตรฐาน
      * - หากไม่มีเงื่อนไขพิเศษ -> ใช้ aph2_template_base.pdf (template.pdf)
      * - หากมีเงื่อนไขพิเศษ 1 ข้อ -> ใช้ aph2_template_4_3.pdf (template4.3.pdf)
@@ -81,10 +119,8 @@ class DocumentService
             'shop_province' => 'เชียงราย',
             'shop_phone' => $business->shop_phone ?: $business->owner->phone ?: '',
             'fee' => (float)($latestLicense->fee ?? 0),
-            'fee_text' => '',
-            'receipt_info' => ($latestLicense && $latestLicense->receipt_book && $latestLicense->receipt_no) 
-                ? "{$latestLicense->receipt_book}/{$latestLicense->receipt_no}" 
-                : ($latestLicense->receipt_no ?? ''),
+            'fee_text' => $latestLicense && $latestLicense->fee ? self::bahtText($latestLicense->fee) : '',
+            'receipt_info' => $latestLicense->receipt_book ?? '',
             'receipt_date' => $latestLicense && $latestLicense->receipt_date 
                 ? self::thaiDate($latestLicense->receipt_date) 
                 : self::thaiDate(now()),

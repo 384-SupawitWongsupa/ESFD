@@ -84,8 +84,8 @@ class DocumentController extends Controller
             'shop_province' => 'เชียงราย',
             'shop_phone' => $business->shop_phone ?: $business->owner->phone ?: '',
             'fee' => $latestLicense ? (string)$latestLicense->fee : '0',
-            'fee_text' => '',
-            'receipt_info' => '',
+            'fee_text' => $latestLicense && $latestLicense->fee ? DocumentService::bahtText($latestLicense->fee) : '',
+            'receipt_info' => $latestLicense->receipt_book ?? '',
             'receipt_date' => $latestLicense && $latestLicense->receipt_date 
                 ? DocumentService::thaiDate($latestLicense->receipt_date) 
                 : DocumentService::thaiDate(now()),
