@@ -216,6 +216,8 @@ export default function DocumentPreview({
     }, [activeTab, selectedForm, aph2PdfUrl, appTemplatePdfUrl]);
 
     // สั่งพิมพ์เอกสารทางการ
+    const fromParam = urlParams?.get('from') || '';
+
     const handlePrint = () => {
         setIsPrinting(true);
         const printWindow = window.open(currentPdfUrl, '_blank');
@@ -226,6 +228,7 @@ export default function DocumentPreview({
         setTimeout(() => {
             router.post(`/documents/after-print/${business.business_id}`, {
                 doc_type: (activeTab === 'aph2' || (activeTab === 'interactive_form' && selectedForm === 'aph2')) ? 'aph2' : 'app_template',
+                from: fromParam,
             });
         }, 1200);
     };
@@ -233,6 +236,7 @@ export default function DocumentPreview({
     const handleReturn = () => {
         router.post(`/documents/after-print/${business.business_id}`, {
             doc_type: (activeTab === 'aph2' || (activeTab === 'interactive_form' && selectedForm === 'aph2')) ? 'aph2' : 'app_template',
+            from: fromParam,
         });
     };
 
@@ -247,14 +251,14 @@ export default function DocumentPreview({
             <Card className="p-4 mb-5 border-slate-200 shadow-xs">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <Link href={`/businesses/${business.business_id}`}>
+                        <Link href={fromParam === 'pending-print' ? '/pending-print' : `/businesses/${business.business_id}`}>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 className="h-9 px-3 text-xs font-normal text-slate-700 border-slate-300 hover:bg-slate-50 flex items-center gap-1.5 rounded-xl"
                             >
                                 <ArrowLeft className="w-3.5 h-3.5" />
-                                <span>กลับหน้ารายละเอียดร้าน</span>
+                                <span>{fromParam === 'pending-print' ? 'กลับหน้าสถานะกิจการ' : 'กลับหน้ารายละเอียดร้าน'}</span>
                             </Button>
                         </Link>
                         <div>

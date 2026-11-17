@@ -7,8 +7,8 @@ import InspectionStatusBadge from '@/Components/InspectionStatusBadge';
 import InspectionRecordModal from '@/Components/InspectionRecordModal';
 import { Card, CardContent } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/Button';
-import { formatThaiDate, formatCitizenId } from '@/lib/utils';
-import { Printer, FileDown, CheckCircle2, ClipboardCheck, Eye } from 'lucide-react';
+import { formatThaiDate, formatThaiDateTime, formatCitizenId } from '@/lib/utils';
+import { Printer, FileDown, CheckCircle2, ClipboardCheck, Eye, Clock } from 'lucide-react';
 
 export default function PendingPrintIndex({ businesses, filters, stats, rounds = [] }) {
     const [keyword, setKeyword] = useState(filters.q || '');
@@ -213,9 +213,9 @@ export default function PendingPrintIndex({ businesses, filters, stats, rounds =
                                                     <StatusBadge status={latestLic.status} expireDate={latestLic.expire_date} />
                                                 )}
                                                 {isCompleted && (
-                                                    <span className="text-xs px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium border border-emerald-200 flex items-center gap-1">
-                                                        <CheckCircle2 className="w-3.5 h-3.5" />
-                                                        พิมพ์แล้ว
+                                                    <span className="text-xs px-2.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-medium border border-emerald-200 flex items-center gap-1.5">
+                                                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                                        <span>พิมพ์แล้ว {latestLic?.printed_at ? `(${formatThaiDateTime(latestLic.printed_at, true)})` : ''}</span>
                                                     </span>
                                                 )}
                                             </div>
@@ -250,6 +250,15 @@ export default function PendingPrintIndex({ businesses, filters, stats, rounds =
                                                         </div>
                                                     </>
                                                 )}
+                                                {latestLic?.is_printed && (
+                                                    <div className="sm:col-span-2 lg:col-span-3 mt-1.5 flex flex-wrap items-center gap-2 text-xs font-medium text-emerald-800 bg-emerald-50/80 border border-emerald-200 rounded-lg px-3 py-1.5">
+                                                        <Clock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                        <span>วันเวลาที่พิมพ์ใบอนุญาต:</span>
+                                                        <span className="font-bold text-emerald-900">
+                                                            {latestLic.printed_at ? formatThaiDateTime(latestLic.printed_at) : (latestLic.updated_at ? formatThaiDateTime(latestLic.updated_at) : '-')}
+                                                        </span>
+                                                    </div>
+                                                )}
                                                 {isPendingInspection && (
                                                     <div className="sm:col-span-2 lg:col-span-3 mt-1">
                                                         <span className="inline-block text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 font-normal">
@@ -283,7 +292,7 @@ export default function PendingPrintIndex({ businesses, filters, stats, rounds =
                                             ) : (
                                                 <>
                                                     <Link
-                                                        href={`/documents/preview/${business.business_id}`}
+                                                        href={`/documents/preview/${business.business_id}?form=aph2&tab=aph2&from=pending-print`}
                                                         className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-normal transition shadow-xs"
                                                     >
                                                         <Printer className="w-4 h-4" />
@@ -301,6 +310,7 @@ export default function PendingPrintIndex({ businesses, filters, stats, rounds =
                                                             type="button"
                                                             onClick={() => handleMarkPrinted(business.business_id)}
                                                             className="inline-flex items-center justify-center gap-2 py-2 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-normal border border-slate-200 transition"
+                                                            title="ทำเครื่องหมายว่าพิมพ์ใบอนุญาตแล้ว และย้ายไปสถานะพิมพ์แล้ว"
                                                         >
                                                             <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                                                             <span>พิมพ์เรียบร้อยแล้ว</span>

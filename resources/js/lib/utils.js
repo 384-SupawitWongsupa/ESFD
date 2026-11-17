@@ -35,6 +35,26 @@ export function formatThaiDate(dateString, isShort = false) {
 }
 
 /**
+ * แปลงวันที่และเวลา ISO หรือ timestamp เป็นรูปแบบวันที่และเวลาไทย (พ.ศ.)
+ * ตัวอย่าง: '2026-11-18T03:15:00.000000Z' -> '18 พ.ย. 2569 เวลา 03:15 น.'
+ */
+export function formatThaiDateTime(dateString, isShort = false) {
+    if (!dateString) return '-';
+    try {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return String(dateString);
+
+        const datePart = formatThaiDate(dateString, isShort);
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+
+        return `${datePart} เวลา ${hours}:${minutes} น.`;
+    } catch {
+        return String(dateString);
+    }
+}
+
+/**
  * แปลงเลขประจำตัวประชาชน 13 หลัก เป็นรูปแบบมาตรฐาน 1-XXXX-XXXXX-XX-X
  */
 export function formatCitizenId(id) {

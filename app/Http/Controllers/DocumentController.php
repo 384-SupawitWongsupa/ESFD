@@ -266,7 +266,12 @@ class DocumentController extends Controller
                 'workflow_status' => 'completed',
             ]);
 
-            $message = 'พิมพ์ใบอนุญาตประกอบกิจการ (แบบ อภ.๒) เรียบร้อยแล้ว';
+            $message = 'พิมพ์ใบอนุญาตประกอบกิจการ (แบบ อภ.๒) เรียบร้อยแล้ว — รายชื่อถูกย้ายไปที่สถานะพิมพ์ใบอนุญาตแล้ว';
+
+            if ($request->input('from') === 'pending-print') {
+                return redirect()->route('pending-print.index', ['status' => 'completed'])
+                    ->with('success', $message);
+            }
         } else {
             if ($business->workflow_status === 'pending_request') {
                 $business->update([
@@ -275,6 +280,11 @@ class DocumentController extends Controller
                 ]);
             }
             $message = 'พิมพ์แบบคำขอรับใบอนุญาต (แบบ อภ.๑) เรียบร้อยแล้ว';
+
+            if ($request->input('from') === 'pending-print') {
+                return redirect()->route('pending-print.index', ['status' => 'pending_inspection'])
+                    ->with('success', $message);
+            }
         }
 
         return redirect()->route('businesses.show', ['id' => $businessId])

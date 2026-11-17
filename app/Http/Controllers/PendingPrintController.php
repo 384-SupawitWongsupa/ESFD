@@ -34,15 +34,18 @@ class PendingPrintController extends Controller
                 $q->where('inspection_status', 'pending')
                   ->orWhere('workflow_status', 'pending_inspection')
                   ->orWhere('workflow_status', 'pending_request');
-            });
+            })
+            ->where('workflow_status', '!=', 'completed')
+            ->whereDoesntHave('licenses', fn($lq) => $lq->where('is_printed', true)->where('status', 'active'));
         } elseif ($filterStatus === 'inspected') {
             $query->where(function ($q) {
                 $q->where('workflow_status', 'pending_print')
                   ->orWhere(function ($sq) {
-                      $sq->where('inspection_status', 'inspected')
-                         ->whereHas('licenses', fn($lq) => $lq->where('is_printed', false));
+                      $sq->where('inspection_status', 'inspected');
                   });
-            });
+            })
+            ->where('workflow_status', '!=', 'completed')
+            ->whereDoesntHave('licenses', fn($lq) => $lq->where('is_printed', true)->where('status', 'active'));
         } elseif ($filterStatus === 'completed') {
             $query->where(function ($q) {
                 $q->where('workflow_status', 'completed')
@@ -68,15 +71,20 @@ class PendingPrintController extends Controller
             $q->where('inspection_status', 'pending')
               ->orWhere('workflow_status', 'pending_inspection')
               ->orWhere('workflow_status', 'pending_request');
-        })->count();
+        })
+        ->where('workflow_status', '!=', 'completed')
+        ->whereDoesntHave('licenses', fn($lq) => $lq->where('is_printed', true)->where('status', 'active'))
+        ->count();
 
         $inspectedNotPrinted = Business::where(function ($q) {
             $q->where('workflow_status', 'pending_print')
               ->orWhere(function ($sq) {
-                  $sq->where('inspection_status', 'inspected')
-                     ->whereHas('licenses', fn($lq) => $lq->where('is_printed', false));
+                  $sq->where('inspection_status', 'inspected');
               });
-        })->count();
+        })
+        ->where('workflow_status', '!=', 'completed')
+        ->whereDoesntHave('licenses', fn($lq) => $lq->where('is_printed', true)->where('status', 'active'))
+        ->count();
 
         $completed = Business::where(function ($q) {
             $q->where('workflow_status', 'completed')
@@ -120,6 +128,7 @@ class PendingPrintController extends Controller
             'workflow_status' => 'completed',
         ]);
 
-        return back()->with('success', 'บันทึกสถานะพิมพ์ใบ อภ.๒ เรียบร้อยแล้ว (สถานะเปลี่ยนเป็นเสร็จสิ้น)');
+        return redirect()->route('pending-print.index', ['status' => 'completed'])
+            ->with('success', 'บันทึกสถานะพิมพ์ใบ อภ.๒ เรียบร้อยแล้ว — รายชื่อถูกย้ายไปที่สถานะพิมพ์ใบอนุญาตแล้ว');
     }
 }
