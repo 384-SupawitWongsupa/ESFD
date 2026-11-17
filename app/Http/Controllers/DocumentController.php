@@ -20,7 +20,7 @@ class DocumentController extends Controller
         $this->docService = $docService;
     }
 
-    public function preview($businessId)
+    public function preview(Request $request, $businessId)
     {
         $business = Business::with([
             'owner',
@@ -132,6 +132,8 @@ class DocumentController extends Controller
             'thaiExpireDate' => $latestLicense && $latestLicense->expire_date 
                 ? DocumentService::thaiDate($latestLicense->expire_date) 
                 : DocumentService::thaiDate(now()->addYear()),
+            'initialTab' => $request->query('tab', 'interactive_form'),
+            'initialForm' => $request->query('form', 'aph1'),
         ]);
     }
 
@@ -266,7 +268,13 @@ class DocumentController extends Controller
 
             $message = 'พิมพ์ใบอนุญาตประกอบกิจการ (แบบ อภ.๒) เรียบร้อยแล้ว';
         } else {
-            $message = 'พิมพ์แบบคำขอรับใบอนุญาต (แบบ สธ.๒) เรียบร้อยแล้ว';
+            if ($business->workflow_status === 'pending_request') {
+                $business->update([
+                    'workflow_status' => 'pending_inspection',
+                    'inspection_status' => 'pending',
+                ]);
+            }
+            $message = 'พิมพ์แบบคำขอรับใบอนุญาต (แบบ อภ.๑) เรียบร้อยแล้ว';
         }
 
         return redirect()->route('businesses.show', ['id' => $businessId])

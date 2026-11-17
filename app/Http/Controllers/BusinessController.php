@@ -109,11 +109,31 @@ class BusinessController extends Controller
             'workflow_status' => 'pending_inspection',
             'inspection_status' => 'pending',
             'request_date' => Carbon::today(),
-            'request_no' => 'REQ-' . date('Ymd') . '-' . str_pad($business->business_id, 4, '0', STR_PAD_LEFT),
+            'request_no' => $business->request_no ?: ('REQ-' . date('Ymd') . '-' . str_pad($business->business_id, 4, '0', STR_PAD_LEFT)),
         ]);
 
-        return redirect()->route('documents.preview', ['businessId' => $business->business_id])
-            ->with('success', 'ออกใบคำขอรับใบอนุญาต (แบบ สธ.๒) เรียบร้อยแล้ว — สถานะปรับเป็น: รอออกตรวจ');
+        return redirect()->route('documents.preview', [
+            'businessId' => $business->business_id,
+            'form' => 'aph1',
+            'tab' => 'pdf_preview',
+        ])->with('success', 'ปรับสถานะเป็น: ยังไม่ได้ออกตรวจ และเปิดพิมพ์แบบคำขอ (อภ.๑) เรียบร้อยแล้ว');
+    }
+
+    public function startInspection($id)
+    {
+        $business = Business::findOrFail($id);
+        $business->update([
+            'workflow_status' => 'pending_inspection',
+            'inspection_status' => 'pending',
+            'request_date' => Carbon::today(),
+            'request_no' => $business->request_no ?: ('REQ-' . date('Ymd') . '-' . str_pad($business->business_id, 4, '0', STR_PAD_LEFT)),
+        ]);
+
+        return redirect()->route('documents.preview', [
+            'businessId' => $business->business_id,
+            'form' => 'aph1',
+            'tab' => 'pdf_preview',
+        ])->with('success', 'ปรับสถานะเป็น: ยังไม่ได้ออกตรวจ และเปิดพิมพ์แบบคำขอ (อภ.๑) เรียบร้อยแล้ว');
     }
 
     public function show($id)

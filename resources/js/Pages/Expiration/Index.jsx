@@ -7,6 +7,7 @@ import InspectionRecordModal from '@/Components/InspectionRecordModal';
 import { Card } from '@/Components/ui/Card';
 import { Button } from '@/Components/ui/Button';
 import { formatThaiDate, formatCitizenId, formatPhone } from '@/lib/utils';
+import { FileText, Printer, ClipboardCheck, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function ExpirationIndex({
@@ -21,6 +22,10 @@ export default function ExpirationIndex({
 }) {
     const [keyword, setKeyword] = useState(q || '');
     const [selectedBusinessForInspection, setSelectedBusinessForInspection] = useState(null);
+
+    const handleStartInspection = (businessId) => {
+        router.post(`/businesses/${businessId}/start-inspection`);
+    };
 
     const handleFilterChange = (newTab, newCategory, newMoo, newQ) => {
         router.get('/expirations', {
@@ -240,23 +245,64 @@ export default function ExpirationIndex({
                                                 {formatThaiDate(latestLic?.expire_date)}
                                             </td>
                                             <td className="py-4 px-4">
-                                                <StatusBadge
-                                                    status={latestLic?.status}
-                                                    expireDate={latestLic?.expire_date}
-                                                />
+                                                <div className="flex flex-col gap-1 items-start">
+                                                    <StatusBadge
+                                                        status={latestLic?.status}
+                                                        expireDate={latestLic?.expire_date}
+                                                    />
+                                                    {(b.inspection_status === 'pending' || b.workflow_status === 'pending_inspection') && (
+                                                        <span className="text-[11px] px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 font-medium border border-orange-200">
+                                                            ยังไม่ได้ออกตรวจ
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="py-4 px-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setSelectedBusinessForInspection(b)}
-                                                        className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs transition shadow-xs"
-                                                    >
-                                                        ออกตรวจต่ออายุ
-                                                    </button>
+                                                <div className="flex items-center justify-end gap-1.5">
+                                                    {(b.inspection_status === 'pending' || b.workflow_status === 'pending_inspection') ? (
+                                                        <>
+                                                            <Link
+                                                                href={`/documents/preview/${b.business_id}?form=aph1&tab=pdf_preview`}
+                                                                className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-xs transition shadow-xs flex items-center gap-1"
+                                                                title="พิมพ์แบบคำขอรับใบอนุญาต/ต่อใบอนุญาต (อภ.๑)"
+                                                            >
+                                                                <Printer className="w-3.5 h-3.5" />
+                                                                <span>พิมพ์ใบ อภ.๑</span>
+                                                            </Link>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSelectedBusinessForInspection(b)}
+                                                                className="py-1.5 px-3 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-medium text-xs transition shadow-xs flex items-center gap-1"
+                                                                title="บันทึกผลการออกตรวจสุขลักษณะและต่ออายุ"
+                                                            >
+                                                                <ClipboardCheck className="w-3.5 h-3.5" />
+                                                                <span>บันทึกผลตรวจ</span>
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleStartInspection(b.business_id)}
+                                                                className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-xs transition shadow-xs flex items-center gap-1"
+                                                                title="กดตรวจสอบเพื่อเปลี่ยนสถานะเป็นยังไม่ได้ออกตรวจ และเปิดพิมพ์ใบ อภ.๑"
+                                                            >
+                                                                <FileText className="w-3.5 h-3.5" />
+                                                                <span>ตรวจสอบ</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setSelectedBusinessForInspection(b)}
+                                                                className="py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition"
+                                                                title="บันทึกผลการออกตรวจสุขลักษณะโดยตรง"
+                                                            >
+                                                                บันทึกผลตรวจ
+                                                            </button>
+                                                        </>
+                                                    )}
                                                     <Link
                                                         href={`/businesses/${b.business_id}`}
-                                                        className="py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition"
+                                                        className="py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs transition"
                                                     >
                                                         ดูข้อมูล
                                                     </Link>

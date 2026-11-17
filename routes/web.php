@@ -33,6 +33,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/businesses/create', [BusinessController::class, 'create'])->name('businesses.create');
     Route::post('/businesses', [BusinessController::class, 'store'])->name('businesses.store');
     Route::post('/businesses/{id}/issue-request', [BusinessController::class, 'issueRequest'])->name('businesses.issueRequest');
+    Route::post('/businesses/{id}/start-inspection', [BusinessController::class, 'startInspection'])->name('businesses.startInspection');
     Route::get('/businesses/{id}', [BusinessController::class, 'show'])->name('businesses.show');
     Route::delete('/businesses/{id}', [BusinessController::class, 'destroy'])->name('businesses.destroy');
     Route::delete('/owners/{id}', [BusinessController::class, 'destroyOwner'])->name('owners.destroy');

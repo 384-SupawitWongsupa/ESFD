@@ -7,13 +7,13 @@ export default function InspectionRecordModal({ isOpen, onClose, business = null
     const initialBiz = business || (businesses.length > 0 ? businesses[0] : null);
     const initialBizLatestLicense = initialBiz?.licenses?.[0];
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset, transform } = useForm({
         business_id: initialBiz?.business_id || '',
         round_id: initialRoundId || rounds[0]?.round_id || 'new',
         new_round_name: '',
         new_round_date: new Date().toISOString().split('T')[0],
-        condition_4_3: 'ปฏิบัติตามมาตรฐานสุขอนามัยและระเบียบกระทรวงสาธารณสุขโดยเคร่งครัด',
-        condition_4_4: 'ดูแลรักษาความสะอาด ความปลอดภัย และไม่สร้างความเดือดร้อนรำคาญแก่ชุมชน',
+        condition_4_3: '',
+        condition_4_4: '',
         fee: initialBizLatestLicense?.fee || '500.00',
         receipt_book: initialBizLatestLicense?.receipt_book || '',
         receipt_no: initialBizLatestLicense?.receipt_no || '',
@@ -47,14 +47,23 @@ export default function InspectionRecordModal({ isOpen, onClose, business = null
             const draft = localStorage.getItem(`dng_inspection_draft_${data.business_id}`);
             if (draft) {
                 const parsed = JSON.parse(draft);
-                if (parsed && (parsed.notes || parsed.receipt_no || parsed.receipt_book)) {
+                // ล้างข้อความ preset เก่า ถ้าตรงกับข้อความอัตโนมัติเดิม
+                const oldPreset3 = 'ปฏิบัติตามมาตรฐานสุขอนามัยและระเบียบกระทรวงสาธารณสุขโดยเคร่งครัด';
+                const oldPreset4 = 'ดูแลรักษาความสะอาด ความปลอดภัย และไม่สร้างความเดือดร้อนรำคาญแก่ชุมชน';
+                
+                let restoredCond3 = parsed.condition_4_3;
+                let restoredCond4 = parsed.condition_4_4;
+                if (restoredCond3 === oldPreset3) restoredCond3 = '';
+                if (restoredCond4 === oldPreset4) restoredCond4 = '';
+
+                if (parsed && (parsed.notes || parsed.receipt_no || parsed.receipt_book || restoredCond3 || restoredCond4)) {
                     setData(prev => ({
                         ...prev,
                         notes: parsed.notes || prev.notes,
                         receipt_book: parsed.receipt_book || prev.receipt_book,
                         receipt_no: parsed.receipt_no || prev.receipt_no,
-                        condition_4_3: parsed.condition_4_3 || prev.condition_4_3,
-                        condition_4_4: parsed.condition_4_4 || prev.condition_4_4,
+                        condition_4_3: restoredCond3 !== undefined ? restoredCond3 : prev.condition_4_3,
+                        condition_4_4: restoredCond4 !== undefined ? restoredCond4 : prev.condition_4_4,
                     }));
                 }
             }
@@ -90,10 +99,19 @@ export default function InspectionRecordModal({ isOpen, onClose, business = null
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        transform((currentData) => ({
+            ...currentData,
+            condition_4_3: currentData.condition_4_3?.trim() ? currentData.condition_4_3.trim() : 'ไม่มี',
+            condition_4_4: currentData.condition_4_4?.trim() ? currentData.condition_4_4.trim() : 'ไม่มี',
+        }));
+
         post('/inspections/record', {
             onSuccess: () => {
                 if (data.business_id) {
-                    localStorage.removeItem(`dng_inspection_draft_${data.business_id}`);
+                    try {
+                        localStorage.removeItem(`dng_inspection_draft_${data.business_id}`);
+                    } catch (e) {}
                 }
                 reset();
                 onClose();
@@ -285,7 +303,8 @@ export default function InspectionRecordModal({ isOpen, onClose, business = null
                                 rows={2}
                                 value={data.condition_4_3}
                                 onChange={(e) => setData('condition_4_3', e.target.value)}
-                                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-700"
+                                placeholder="ระบุเงื่อนไขข้อ ๔.๓ (หากไม่มีไม่ต้องกรอก ระบบจะบันทึกเป็น 'ไม่มี')"
+                                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-700 bg-white"
                             />
                         </div>
                         <div>
@@ -296,7 +315,8 @@ export default function InspectionRecordModal({ isOpen, onClose, business = null
                                 rows={2}
                                 value={data.condition_4_4}
                                 onChange={(e) => setData('condition_4_4', e.target.value)}
-                                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-700"
+                                placeholder="ระบุเงื่อนไขข้อ ๔.๔ (หากไม่มีไม่ต้องกรอก ระบบจะบันทึกเป็น 'ไม่มี')"
+                                className="w-full text-xs rounded-xl border border-slate-300 p-2.5 focus:ring-2 focus:ring-emerald-700 bg-white"
                             />
                         </div>
                     </div>

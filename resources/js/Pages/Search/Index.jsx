@@ -316,28 +316,26 @@ export default function SearchIndex({ owners, rounds = [], filters }) {
                                                 </div>
 
                                                 <div className="flex items-center gap-1.5">
-                                                    {/* ขั้นตอนที่ ๑: ออกใบคำขอ สธ.๒ (แสดงเมื่อรอออกใบคำขอ) */}
+                                                    {/* ขั้นตอนที่ ๑: ออกใบคำขอ อภ.๑ (แสดงเมื่อรอออกใบคำขอ) */}
                                                     {b.workflow_status === 'pending_request' && (
                                                         <>
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleIssueRequest(b.business_id)}
-                                                                title="กดออกใบคำขอเพื่อเข้าสู่ขั้นตอนรอออกตรวจ"
+                                                                title="กดตรวจสอบเพื่อเปลี่ยนสถานะเป็นยังไม่ได้ออกตรวจ และเปิดพิมพ์ใบ อภ.๑"
                                                                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-normal text-xs transition shadow-2xs"
                                                             >
                                                                 <FileText className="w-3.5 h-3.5" />
-                                                                <span>กดออกใบคำขอ</span>
+                                                                <span>ตรวจสอบ</span>
                                                             </button>
 
-                                                            <a
-                                                                href={`/documents/sth2/${b.business_id}/pdf`}
-                                                                target="_blank"
-                                                                rel="noreferrer"
-                                                                title="พิมพ์แบบคำขอ (สธ.๒)"
+                                                            <Link
+                                                                href={`/documents/preview/${b.business_id}?form=aph1&tab=pdf_preview`}
+                                                                title="พิมพ์แบบคำขอ (อภ.๑)"
                                                                 className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
                                                             >
                                                                 <Printer className="w-4 h-4" />
-                                                            </a>
+                                                            </Link>
                                                         </>
                                                     )}
 

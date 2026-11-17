@@ -100,7 +100,10 @@ class InspectionController extends Controller
             }
         }
 
-        DB::transaction(function () use ($validated, $fileUrl, $roundId) {
+        $cond43 = !empty(trim($validated['condition_4_3'] ?? '')) ? trim($validated['condition_4_3']) : 'ไม่มี';
+        $cond44 = !empty(trim($validated['condition_4_4'] ?? '')) ? trim($validated['condition_4_4']) : 'ไม่มี';
+
+        DB::transaction(function () use ($validated, $fileUrl, $roundId, $cond43, $cond44) {
             // บันทึกหรืออัปเดตผลการตรวจในรอบนี้ (ป้องกันบันทึกซ้ำตาม Unique Constraint)
             $record = InspectionRecord::updateOrCreate(
                 [
@@ -108,8 +111,8 @@ class InspectionController extends Controller
                     'business_id' => $validated['business_id'],
                 ],
                 [
-                    'condition_4_3' => $validated['condition_4_3'] ?? null,
-                    'condition_4_4' => $validated['condition_4_4'] ?? null,
+                    'condition_4_3' => $cond43,
+                    'condition_4_4' => $cond44,
                     'file_url' => $fileUrl,
                     'notes' => $validated['notes'] ?? null,
                 ]

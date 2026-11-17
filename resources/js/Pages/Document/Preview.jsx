@@ -17,9 +17,17 @@ export default function DocumentPreview({
     aph2Data = {},
     thaiIssueDate,
     thaiExpireDate,
+    initialTab,
+    initialForm,
 }) {
-    const [activeTab, setActiveTab] = useState('interactive_form'); // 'interactive_form' | 'pdf_preview' | 'aph2'
-    const [selectedForm, setSelectedForm] = useState('aph1'); // 'aph1' | 'aph2' (ตัวเลือกระหว่าง อภ.๑ และ อภ.๒)
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const tabParam = urlParams?.get('tab') || initialTab;
+    const formParam = urlParams?.get('form') || initialForm;
+
+    const [activeTab, setActiveTab] = useState(
+        (tabParam === 'pdf_preview' || tabParam === 'aph1') ? 'pdf_preview' : (tabParam === 'aph2' ? 'aph2' : 'interactive_form')
+    );
+    const [selectedForm, setSelectedForm] = useState(formParam === 'aph2' ? 'aph2' : 'aph1');
     const [isPrinting, setIsPrinting] = useState(false);
     const iframeRef = useRef(null);
 

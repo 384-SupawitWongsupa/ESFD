@@ -83,7 +83,7 @@ export default function BusinessShow({ business, rounds = [] }) {
                             className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-normal shadow-xs flex items-center gap-1.5"
                         >
                             <FileText className="w-3.5 h-3.5" />
-                            <span>กดออกใบคำขอ (สธ.๒)</span>
+                            <span>ตรวจสอบ / ออกใบคำขอ (อภ.๑)</span>
                         </Button>
                     )}
 
@@ -98,14 +98,12 @@ export default function BusinessShow({ business, rounds = [] }) {
                         </Button>
                     )}
 
-                    <a
-                        href={`/documents/sth2/${business.business_id}/pdf`}
-                        target="_blank"
-                        rel="noreferrer"
+                    <Link
+                        href={`/documents/preview/${business.business_id}?form=aph1&tab=pdf_preview`}
                         className="py-2 px-3 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs border border-slate-300 transition"
                     >
-                        พิมพ์แบบคำขอ (สธ.๒)
-                    </a>
+                        พิมพ์แบบคำขอ (อภ.๑)
+                    </Link>
 
                     {(business.workflow_status === 'pending_print' || business.workflow_status === 'completed' || business.licenses?.length > 0) && (
                         <Link href={`/documents/preview/${business.business_id}`}>
