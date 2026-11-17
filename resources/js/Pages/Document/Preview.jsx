@@ -251,14 +251,24 @@ export default function DocumentPreview({
             <Card className="p-4 mb-5 border-slate-200 shadow-xs">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <Link href={fromParam === 'pending-print' ? '/pending-print' : `/businesses/${business.business_id}`}>
+                        <Link
+                            href={
+                                fromParam === 'pending-print'
+                                    ? '/pending-print'
+                                    : (fromParam === 'expirations' ? '/expirations' : `/businesses/${business.business_id}`)
+                            }
+                        >
                             <Button
                                 variant="outline"
                                 size="sm"
                                 className="h-9 px-3 text-xs font-normal text-slate-700 border-slate-300 hover:bg-slate-50 flex items-center gap-1.5 rounded-xl"
                             >
                                 <ArrowLeft className="w-3.5 h-3.5" />
-                                <span>{fromParam === 'pending-print' ? 'กลับหน้าสถานะกิจการ' : 'กลับหน้ารายละเอียดร้าน'}</span>
+                                <span>
+                                    {fromParam === 'pending-print'
+                                        ? 'กลับหน้าสถานะกิจการ'
+                                        : (fromParam === 'expirations' ? 'กลับหน้าติดตามหมดอายุ' : 'กลับหน้ารายละเอียดร้าน')}
+                                </span>
                             </Button>
                         </Link>
                         <div>

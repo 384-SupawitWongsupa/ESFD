@@ -24,7 +24,9 @@ export default function ExpirationIndex({
     const [selectedBusinessForInspection, setSelectedBusinessForInspection] = useState(null);
 
     const handleStartInspection = (businessId) => {
-        router.post(`/businesses/${businessId}/start-inspection`);
+        router.post(`/businesses/${businessId}/start-inspection`, {
+            from: 'expirations',
+        });
     };
 
     const handleFilterChange = (newTab, newCategory, newMoo, newQ) => {
@@ -262,7 +264,7 @@ export default function ExpirationIndex({
                                                     {(b.inspection_status === 'pending' || b.workflow_status === 'pending_inspection') ? (
                                                         <>
                                                             <Link
-                                                                href={`/documents/preview/${b.business_id}?form=aph1&tab=pdf_preview`}
+                                                                href={`/documents/preview/${b.business_id}?form=aph1&tab=pdf_preview&from=expirations`}
                                                                 className="py-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-xs transition shadow-xs flex items-center gap-1"
                                                                 title="พิมพ์แบบคำขอรับใบอนุญาต/ต่อใบอนุญาต (อภ.๑)"
                                                             >

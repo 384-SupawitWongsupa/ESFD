@@ -102,7 +102,7 @@ class BusinessController extends Controller
             ->with('success', 'ลงทะเบียนสถานประกอบการใหม่เรียบร้อยแล้ว — สถานะ: รอออกใบคำขอ (กรุณากดออกใบคำขอก่อนเข้าสู่ขั้นตอนรอออกตรวจ)');
     }
 
-    public function issueRequest($id)
+    public function issueRequest(Request $request, $id)
     {
         $business = Business::findOrFail($id);
         $business->update([
@@ -112,14 +112,17 @@ class BusinessController extends Controller
             'request_no' => $business->request_no ?: ('REQ-' . date('Ymd') . '-' . str_pad($business->business_id, 4, '0', STR_PAD_LEFT)),
         ]);
 
+        $from = $request->input('from', '');
+
         return redirect()->route('documents.preview', [
             'businessId' => $business->business_id,
             'form' => 'aph1',
             'tab' => 'pdf_preview',
+            'from' => $from ?: null,
         ])->with('success', 'ปรับสถานะเป็น: ยังไม่ได้ออกตรวจ และเปิดพิมพ์แบบคำขอ (อภ.๑) เรียบร้อยแล้ว');
     }
 
-    public function startInspection($id)
+    public function startInspection(Request $request, $id)
     {
         $business = Business::findOrFail($id);
         $business->update([
@@ -129,10 +132,13 @@ class BusinessController extends Controller
             'request_no' => $business->request_no ?: ('REQ-' . date('Ymd') . '-' . str_pad($business->business_id, 4, '0', STR_PAD_LEFT)),
         ]);
 
+        $from = $request->input('from', 'expirations');
+
         return redirect()->route('documents.preview', [
             'businessId' => $business->business_id,
             'form' => 'aph1',
             'tab' => 'pdf_preview',
+            'from' => $from,
         ])->with('success', 'ปรับสถานะเป็น: ยังไม่ได้ออกตรวจ และเปิดพิมพ์แบบคำขอ (อภ.๑) เรียบร้อยแล้ว');
     }
 

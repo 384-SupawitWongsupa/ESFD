@@ -272,6 +272,10 @@ class DocumentController extends Controller
                 return redirect()->route('pending-print.index', ['status' => 'completed'])
                     ->with('success', $message);
             }
+            if ($request->input('from') === 'expirations') {
+                return redirect()->route('expirations.index')
+                    ->with('success', $message);
+            }
         } else {
             if ($business->workflow_status === 'pending_request') {
                 $business->update([
@@ -285,6 +289,15 @@ class DocumentController extends Controller
                 return redirect()->route('pending-print.index', ['status' => 'pending_inspection'])
                     ->with('success', $message);
             }
+            if ($request->input('from') === 'expirations') {
+                return redirect()->route('expirations.index')
+                    ->with('success', $message);
+            }
+        }
+
+        if ($request->input('from') === 'expirations') {
+            return redirect()->route('expirations.index')
+                ->with('success', $message);
         }
 
         return redirect()->route('businesses.show', ['id' => $businessId])
